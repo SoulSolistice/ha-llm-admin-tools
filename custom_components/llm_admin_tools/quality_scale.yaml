@@ -1,0 +1,132 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no service actions. Its tools are LLM tools.
+  appropriate-polling:
+    status: exempt
+    comment: Nothing is polled; data is read when a tool is called.
+  brands: done
+  common-modules:
+    status: exempt
+    comment: There is no coordinator or entity to place in a common module.
+  config-flow-test-coverage: done
+  config-flow:
+    status: done
+    comment: The flow only confirms the setup, so there are no fields to describe.
+  dependency-transparency:
+    status: exempt
+    comment: The integration has no requirements.
+  docs-actions:
+    status: exempt
+    comment: The integration registers no service actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no triggers.
+  entity-event-setup:
+    status: exempt
+    comment: The integration provides no entities.
+  entity-unique-id:
+    status: exempt
+    comment: The integration provides no entities.
+  has-entity-name:
+    status: exempt
+    comment: The integration provides no entities.
+  runtime-data: done
+  test-before-configure:
+    status: exempt
+    comment: There is nothing to connect to or authenticate with.
+  test-before-setup:
+    status: done
+    comment: Setup fails closed if secrets.yaml cannot be read.
+  unique-config-entry:
+    status: done
+    comment: The manifest sets single_config_entry.
+
+  # Silver
+  action-exceptions:
+    status: done
+    comment: There are no actions; tools raise HomeAssistantError or a subclass.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters:
+    status: exempt
+    comment: Setup asks for nothing.
+  entity-unavailable:
+    status: exempt
+    comment: The integration provides no entities.
+  integration-owner: done
+  log-when-unavailable:
+    status: exempt
+    comment: There is no device or service that can become unavailable.
+  parallel-updates:
+    status: exempt
+    comment: The integration has no entity platforms.
+  reauthentication-flow:
+    status: exempt
+    comment: The integration holds no credentials.
+  test-coverage: done
+
+  # Gold
+  devices:
+    status: exempt
+    comment: The integration creates no devices.
+  diagnostics: done
+  discovery-update-info:
+    status: exempt
+    comment: There is nothing to discover.
+  discovery:
+    status: exempt
+    comment: There is nothing to discover.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: exempt
+    comment: The integration supports no devices.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: The integration creates no devices.
+  entity-category:
+    status: exempt
+    comment: The integration provides no entities.
+  entity-device-class:
+    status: exempt
+    comment: The integration provides no entities.
+  entity-disabled-by-default:
+    status: exempt
+    comment: The integration provides no entities.
+  entity-translations:
+    status: exempt
+    comment: The integration provides no entities.
+  exception-translations: done
+  icon-translations:
+    status: exempt
+    comment: The integration provides no entities or actions.
+  reconfiguration-flow:
+    status: exempt
+    comment: Setup stores nothing; all settings are in the options flow.
+  repair-issues:
+    status: exempt
+    comment: No condition exists that the user could repair.
+  stale-devices:
+    status: exempt
+    comment: The integration creates no devices.
+
+  # Platinum
+  async-dependency:
+    status: exempt
+    comment: The integration has no dependency.
+  inject-websession:
+    status: exempt
+    comment: The integration makes no web requests.
+  strict-typing: done

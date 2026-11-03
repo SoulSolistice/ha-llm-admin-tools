@@ -1,0 +1,352 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "LLM Admin Tools is already set up."
+    },
+    "step": {
+      "user": {
+        "description": "This adds tools for administrators to Home Assistant's LLM APIs, covering all entities, history, devices, automations, scripts and the system log. Any LLM client an administrator connects, such as one using the Model Context Protocol Server integration, can read this data and sends it to its model provider. Known secrets are withheld, but this cannot be guaranteed for all text. Clients can only read until you allow changes. You can narrow what is exposed, and choose what can be changed, in the settings after setup.",
+        "title": "Set up LLM Admin Tools"
+      }
+    }
+  },
+  "exceptions": {
+    "all_entities_refused": {
+      "message": "Acting on all entities is not possible. Name them one by one."
+    },
+    "area_not_found": {
+      "message": "Area {area_id} was not found."
+    },
+    "area_protected": {
+      "message": "The owner protected area {area_id} from changes."
+    },
+    "category_scope_required": {
+      "message": "Listing categories needs a scope, such as automation."
+    },
+    "command_not_allowed": {
+      "message": "Command {command} cannot be run."
+    },
+    "command_refused": {
+      "message": "Home Assistant refused {command}: {message}"
+    },
+    "command_timed_out": {
+      "message": "{command} did not answer in time. It may still take effect."
+    },
+    "command_unavailable": {
+      "message": "{command} is not available, as what handles it is not running."
+    },
+    "config_entry_not_found": {
+      "message": "Config entry {entry_id} was not found."
+    },
+    "config_entry_protected": {
+      "message": "Config entry {entry_id} cannot be changed by a client."
+    },
+    "dashboard_config_required": {
+      "message": "save_config needs a config."
+    },
+    "dashboard_link_refused": {
+      "message": "A dashboard cannot link to anything outside Home Assistant, or hold what runs in the browser: it could send what it shows to the outside when someone opens it."
+    },
+    "dashboard_not_found": {
+      "message": "Dashboard {dashboard} was not found among those that can be changed."
+    },
+    "dashboard_path_required": {
+      "message": "State url_path, from list_dashboards, or {marker} for the default dashboard."
+    },
+    "definition_config_required": {
+      "message": "This needs the whole definition in config."
+    },
+    "definition_exists": {
+      "message": "A definition with id {definition_id} already exists."
+    },
+    "definition_id_required": {
+      "message": "This needs the id of the definition."
+    },
+    "definition_kind_mismatch": {
+      "message": "{entity_id} is not of kind {kind}."
+    },
+    "definition_kind_unavailable": {
+      "message": "Definitions of kind {kind} cannot be written, as {kind} is not running."
+    },
+    "definition_not_found": {
+      "message": "No definition with id {definition_id} exists in the file the UI edits. One defined in YAML elsewhere cannot be changed."
+    },
+    "definition_part_refused": {
+      "message": "Blueprints and templated service or event names are refused, as what they would do cannot be checked."
+    },
+    "definition_unavailable": {
+      "message": "The configuration of {entity_id} is not available."
+    },
+    "delete_not_allowed": {
+      "message": "The owner has not allowed deleting things."
+    },
+    "device_not_found": {
+      "message": "Device {device_id} was not found."
+    },
+    "device_protected": {
+      "message": "The owner protected device {device_id} from changes."
+    },
+    "domain_protected": {
+      "message": "The owner protected everything in {domain} from changes."
+    },
+    "entity_not_found": {
+      "message": "{entity_id} was not found."
+    },
+    "entity_not_registered": {
+      "message": "{entity_id} has no registry entry, so it cannot be changed this way."
+    },
+    "entity_protected": {
+      "message": "The owner protected {entity_id} from changes."
+    },
+    "full_log_unavailable": {
+      "message": "The full log is not available, as this installation has neither a log file nor a Supervisor."
+    },
+    "full_log_unreadable": {
+      "message": "The full log could not be read."
+    },
+    "group_target_refused": {
+      "message": "Some things are hidden or protected, so areas, floors, labels and templated targets are refused: who they reach is only known when they run. Name the entities."
+    },
+    "helper_not_found": {
+      "message": "Helper {item_id} was not found."
+    },
+    "in_use_by_protected": {
+      "message": "This is in use by something that cannot be changed, so it cannot be changed or deleted either."
+    },
+    "invalid_entity_id": {
+      "message": "{entity_id} is not a valid entity ID."
+    },
+    "invalid_time": {
+      "message": "{value} is not an ISO 8601 time."
+    },
+    "invalid_time_window": {
+      "message": "The start of the time window must be before its end."
+    },
+    "label_not_found": {
+      "message": "Label {label_id} was not found."
+    },
+    "label_protected": {
+      "message": "The owner protected label {label_id} from changes."
+    },
+    "nothing_saved": {
+      "message": "Home Assistant has no saved configuration for this. Either it does not exist, or, for a dashboard, it is generated automatically."
+    },
+    "person_user_refused": {
+      "message": "A client cannot link a person to a user account."
+    },
+    "recorder_unavailable": {
+      "message": "History is not available because the recorder is not running."
+    },
+    "redacted_value": {
+      "message": "The request holds {marker}, which stands in for a value that was withheld. Saving it would destroy that value. Leave the field out, or state a new value."
+    },
+    "registry_item_id_required": {
+      "message": "This needs the ID of the item."
+    },
+    "registry_item_not_found": {
+      "message": "Item {item_id} was not found."
+    },
+    "result_too_large": {
+      "message": "The result is too large to return. Narrow the request with filters or a lower limit."
+    },
+    "secrets_unreadable": {
+      "message": "A secrets file could not be read, so secret values could not be withheld from results."
+    },
+    "service_data_invalid": {
+      "message": "{service} does not take this: {message}"
+    },
+    "service_not_allowed": {
+      "message": "The owner has not allowed {service}. get_capabilities lists what is allowed."
+    },
+    "service_not_found": {
+      "message": "Service {service} does not exist."
+    },
+    "summary_needs_full_log": {
+      "message": "The owner turned off reading the full log, which this summary is made from."
+    },
+    "system_log_unavailable": {
+      "message": "The system log is not available because the System Log integration is not running."
+    },
+    "target_in_service_data": {
+      "message": "State the targets in entity_ids, naming each entity, not in data."
+    },
+    "target_holds_protected": {
+      "message": "{entity_id} stands for other entities, and not all of them can be changed, so it cannot be a target."
+    },
+    "template_refused": {
+      "message": "Some things are hidden, so templates are refused: they can read anything."
+    },
+    "templates_off": {
+      "message": "Templates are refused, as they can read what is withheld from you. Only the owner can allow them, in the settings of this integration."
+    },
+    "time_window_too_long": {
+      "message": "The time window can be at most {days} days long."
+    },
+    "tool_failed": {
+      "message": "This tool failed with a {kind}. What it said is withheld, as it can quote anything. The owner can read it by turning on debug logging for this integration."
+    },
+    "tools_outdated": {
+      "message": "These tools are out of date, as the settings of LLM Admin Tools changed. Ask for the tools again."
+    },
+    "trace_kind": {
+      "message": "{entity_id} has no traces: only automations and scripts have them."
+    },
+    "trace_needs_id": {
+      "message": "{entity_id} has no ID, so Home Assistant keeps no traces of it."
+    },
+    "unavailable_while_hidden": {
+      "message": "{what} is not available while anything is hidden, as what it reads could show what is hidden."
+    },
+    "write_rate_limited": {
+      "message": "Too many changes in a short time. Wait a minute, and check that this is intended."
+    },
+    "write_subject_off": {
+      "message": "The owner has not allowed changing {subject}. A client cannot change that."
+    }
+  },
+  "options": {
+    "error": {
+      "no_tools_selected": "Select at least one tool. To stop serving tools altogether, disable the integration.",
+      "service_not_possible": "One of these can never be allowed, or names a whole domain where each service must be named. See the description of this field.",
+      "withheld_text_too_short": "Each text to withhold needs at least 2 characters, as a shorter one would be removed from everything."
+    },
+    "step": {
+      "init": {
+        "description": "Credentials are always withheld and cannot be turned off. Changes apply as soon as you save them. Clients keep showing the tools they listed before until they reconnect, but a turned off tool can no longer be called.",
+        "menu_options": {
+          "recent_activity": "Recent activity: what clients changed, and why",
+          "redaction": "Redaction: which values are withheld",
+          "scope": "Scope: which entities, devices, integrations and logs are visible",
+          "tools": "Tools: which tools are offered",
+          "writes": "Changes: what clients are allowed to change"
+        },
+        "title": "What LLM clients can see and do"
+      },
+      "recent_activity": {
+        "title": "Recent activity",
+        "description": "Text in here comes from clients, so read it as such. It is left out of diagnostics, as those are often shared.\n\n**Changes**\n\n{changes}\n\n**Reads beyond the usual limits**\n\n{reads}"
+      },
+      "redaction": {
+        "data": {
+          "extra_redacted_keys": "Key name to withhold",
+          "extra_redacted_text": "Text to withhold",
+          "redact_location": "Withhold location",
+          "redact_network": "Withhold network details",
+          "redact_personal": "Withhold personal details",
+          "scrub_esphome_secrets": "Also withhold values from ESPHome's secrets file"
+        },
+        "data_description": {
+          "extra_redacted_keys": "The value stored under these names is withheld, for example ap or serial. Upper case and separators are ignored.",
+          "extra_redacted_text": "This exact text is removed wherever it appears, for example a hostname, a network name or an account name.",
+          "redact_location": "Coordinates and altitude, on people, zones, trackers and everything else.",
+          "redact_network": "Private IP addresses, MAC addresses, network names and hostnames. These often help when diagnosing problems.",
+          "redact_personal": "Email addresses, user names, phone numbers and public IP addresses. A version number with four parts can look like an IP address and be hidden too.",
+          "scrub_esphome_secrets": "esphome/secrets.yaml, as well as secrets.yaml, which is always used. A value needs at least 6 characters to be recognized."
+        },
+        "title": "Redaction"
+      },
+      "scope": {
+        "data": {
+          "assist_exposed_only": "Only entities exposed to Assist",
+          "excluded_areas": "Hide areas",
+          "excluded_domains": "Hide domains",
+          "excluded_entities": "Hide entities",
+          "excluded_integrations": "Hide integrations",
+          "excluded_labels": "Hide labels",
+          "excluded_loggers": "Logger name to hide"
+        },
+        "data_description": {
+          "assist_exposed_only": "Limit the tools to what you expose under Voice assistants, instead of all entities.",
+          "excluded_areas": "Hides the area, its devices, and its entities. An entity assigned to another area than its device follows its own area.",
+          "excluded_domains": "Hides all entities of these domains, for example camera or person.",
+          "excluded_entities": "Hides these entities everywhere, including automations and scripts themselves if you select them.",
+          "excluded_integrations": "Hides the entry from the integration list, along with its devices and entities. A few entities are not linked to their integration, such as sun.sun: hide those by entity. Log lines stay visible unless you also hide the logger.",
+          "excluded_labels": "Hides entities and devices with these labels.",
+          "excluded_loggers": "Hides log records whose logger name contains this text, for example websocket_api."
+        },
+        "title": "Scope"
+      },
+      "tools": {
+        "data": {
+          "enabled_tools": "Offered tools"
+        },
+        "data_description": {
+          "enabled_tools": "A tool you turn off cannot be called. Tools added by later versions stay off once you have saved this list."
+        },
+        "title": "Tools"
+      },
+      "writes": {
+        "data": {
+          "allowed_services": "Allowed services",
+          "protected_areas": "Protect areas",
+          "protected_domains": "Protect domains",
+          "protected_entities": "Protect entities",
+          "protected_integrations": "Protect integrations",
+          "protected_labels": "Protect labels",
+          "write_allow_delete": "Allow deleting",
+          "write_allow_templates": "Allow templates (read the warning)",
+          "write_subjects": "What can be changed"
+        },
+        "data_description": {
+          "allowed_services": "A domain allows all its services, for example light. A service allows only that one, for example light.turn_on. Automations and scripts written by a client are limited to these too, as they run later with all rights. Allowing something that runs other things, such as script, allows whatever those do. Domains homeassistant and hassio can only be allowed one service at a time. Some can never be allowed: shell commands, python scripts, stopping the system, and this integration itself.",
+          "protected_areas": "A client can see these and what is in them, but not change them.",
+          "protected_domains": "A client can see the entities of these domains, but not change them.",
+          "protected_entities": "A client can see these entities, but not change them.",
+          "protected_integrations": "A client can see these and what they provide, but not change them. This integration and the MCP server can never be changed.",
+          "protected_labels": "A client can see what has these labels, but not change it.",
+          "write_allow_delete": "Without this, a client can create and change things, but deleting is refused everywhere.",
+          "write_allow_templates": "Warning: a template can read anything in Home Assistant, including the values withheld under Redaction, and a client can then read the result back from a trace or a state. With this on, redaction no longer protects what a client wants to get at. It has no effect while anything is hidden: templates stay refused then.",
+          "write_subjects": "Nothing can be changed until you select something here. Each choice adds tools for clients."
+        },
+        "description": "Clients can only read until you allow something here. A client cannot change these settings. Every change needs a reason and is recorded under recent activity.",
+        "title": "Changes"
+      }
+    }
+  },
+  "selector": {
+    "tool": {
+      "options": {
+        "find_references": "Find what uses an entity or device, or names what does not exist",
+        "get_automation_trace": "Read how an automation or script ran",
+        "get_capabilities": "Report what is available and what is restricted",
+        "get_dashboard": "Read the configuration of a dashboard",
+        "get_definition": "Read the configuration of an automation, script or scene",
+        "get_entity": "Read one entity with its attributes",
+        "get_entity_history": "Read state history",
+        "get_extended_history": "Read far more history of one entity, on request with a reason",
+        "get_full_log": "Read the full log, on request with a reason",
+        "get_health_report": "Report what is wrong right now",
+        "get_system_info": "Read the versions and platform",
+        "get_system_log": "Read the system log",
+        "list_areas": "List areas",
+        "list_dashboards": "List dashboards",
+        "list_definitions": "List automations, scripts and scenes",
+        "list_devices": "List devices",
+        "list_entities": "List entities",
+        "list_helpers": "List helpers, persons, tags and zones",
+        "list_integrations": "List integrations and their status",
+        "list_registry_items": "List floors, labels and categories",
+        "list_repairs": "List repairs, including what Spook found if it is installed",
+        "summarize_log": "Summarize the full log by what it says"
+      }
+    },
+    "write_subject": {
+      "options": {
+        "areas": "Areas",
+        "automations": "Automations",
+        "categories": "Categories",
+        "config_entries": "Integration entries: reload, turn on or off, rename",
+        "dashboards": "Dashboards",
+        "devices": "Devices: name, area, labels, turn on or off",
+        "entities": "Entities: name, area, labels, turn on or off",
+        "floors": "Floors",
+        "helpers": "Helpers, tags and zones",
+        "labels": "Labels",
+        "persons": "Persons",
+        "scenes": "Scenes",
+        "scripts": "Scripts",
+        "services": "Calling allowed services"
+      }
+    }
+  }
+}

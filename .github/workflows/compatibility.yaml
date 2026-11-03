@@ -1,0 +1,24 @@
+name: Compatibility
+
+# Some parts of Home Assistant used here are not a public interface. Pinned versions
+# would not show when a new release changes them, so this takes the newest one, and what
+# the integrations the tests run against ask for in that release.
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  newest-home-assistant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install pytest-homeassistant-custom-component
+      - run: python .github/scripts/core_requirements.py | pip install -r /dev/stdin
+      - run: pytest tests

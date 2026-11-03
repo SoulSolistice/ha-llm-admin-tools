@@ -1,0 +1,25 @@
+{
+  "domain": "llm_admin_tools",
+  "name": "LLM Admin Tools",
+  "after_dependencies": [
+    "automation",
+    "config",
+    "hassio",
+    "lovelace",
+    "recorder",
+    "scene",
+    "script",
+    "system_log",
+    "websocket_api"
+  ],
+  "categories": ["ai_voice"],
+  "codeowners": ["@SoulSolistice"],
+  "config_flow": true,
+  "documentation": "https://github.com/SoulSolistice/ha-llm-admin-tools",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/SoulSolistice/ha-llm-admin-tools/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
