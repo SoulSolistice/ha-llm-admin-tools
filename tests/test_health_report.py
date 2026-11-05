@@ -1,5 +1,6 @@
 """Tests for the repairs, among them Spook's, and the report on what is wrong."""
 
+import inspect
 import logging
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -140,6 +141,35 @@ async def test_repairs_keep_what_is_hidden(
     )
     data = (await call_tool("list_repairs")).data
     assert [item["issue_id"] for item in data["items"]] == ["names_gone"]
+
+
+@pytest.mark.skipif(
+    "config_entry_id" not in inspect.signature(ir.async_create_issue).parameters,
+    reason="A repair belongs to a config entry from Home Assistant 2026.11",
+)
+@pytest.mark.usefixtures("texts")
+async def test_repair_of_a_hidden_entry_is_hidden(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """One that another integration raised about a hidden entry is left out too."""
+    source = MockConfigEntry(domain="secretive")
+    source.add_to_hass(hass)
+    shown = MockConfigEntry(domain="open")
+    shown.add_to_hass(hass)
+    for issue_id, entry in (("about_hidden", source), ("about_shown", shown)):
+        ir.async_create_issue(
+            hass,
+            "spook",
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="gone",
+            translation_placeholders={"automation": "Morning"},
+            config_entry_id=entry.entry_id,
+        )
+    await apply_options(hass, init_integration, excluded_integrations=[source.entry_id])
+    data = (await call_tool("list_repairs")).data
+    assert [item["issue_id"] for item in data["items"]] == ["about_shown"]
 
 
 def test_a_repair_without_severity_comes_last() -> None:

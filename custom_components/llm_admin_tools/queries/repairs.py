@@ -68,6 +68,8 @@ def visible_issues(
         and (query.include_ignored or issue.dismissed_version is None)
         and (query.domain is None or query.domain == issue.domain)
         and not hidden_domains.intersection((issue.domain, issue.issue_domain))
+        # From 2026.11 a repair can belong to an entry of another integration.
+        and policy.integration_allowed(getattr(issue, "config_entry_id", None))
         and not _names_something_hidden(hass, policy, issue)
     ]
     newest_first = sorted(issues, key=lambda issue: issue.created, reverse=True)
