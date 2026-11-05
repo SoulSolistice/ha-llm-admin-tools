@@ -32,7 +32,7 @@ change. It starts out read-only.
 | Changes | What its intents do | Any action, on any target | Nothing until you allow it, per subject and service, with things you can protect |
 | Templates | No | Rendered on request, reading anything | Refused [unless you allow them](#templates) |
 | Before a change | | | `dry_run`, and what a removal would [take along](#capability-tools) |
-| After a change | Logbook | Logbook | Logbook, and [a record](#recent-activity) with the client's reason, kept for you |
+| After a change | Logbook | Logbook and Action history | Those, and [a record](#recent-activity) with the client's reason, kept for you |
 
 The first column was checked against the source code of 2026.10.4, the second against that of
 2026.11.0. From 2026.11, Assist stays as in the first column, and the second describes
@@ -81,7 +81,7 @@ Then, either way:
 4. **Connect your client to `/api/mcp/llm_admin_tools`** on your Home Assistant, not to
    `/api/mcp`. The latter also serves every other LLM API the server offers. From 2026.11
    that includes `homeassistant__call_action` and `homeassistant__render_template` if
-   **Expose all LLM APIs** is on, which is the default for a new setup. None of them is bound
+   **Expose all AI tools** is on, which is the default for a new setup. None of them is bound
    by these settings: see [other routes](#other-routes).
 5. Reconnect your client after an update. Many clients load the tool list only once, when
    they connect.
@@ -278,7 +278,7 @@ regardless of this setting.
    undo the change. If that or the result is too long to return, `before_left_out`,
    `affects_left_out` or `result_left_out` says so, because a client told that a completed
    change had failed would make it again. Service calls carry the caller's identity, so the
-   logbook shows who made them.
+   logbook, and from 2026.11 Action history, show who made them.
 
 Where Home Assistant has its own commands for something, the change goes through those, with
 their schema, permission checks and logic. The list of commands that can be run is fixed in
@@ -413,24 +413,30 @@ anything here; it would simply use another door:
 | Other route | What it does regardless of these settings |
 | --- | --- |
 | The REST and WebSocket APIs | Everything an administrator can do |
-| `/api/mcp/homeassistant` (from 2026.11) | Any template and any action. Served to any administrator, whatever is selected in the options of the MCP server, and its read-only option does not apply. |
-| `/api/mcp` | The LLM APIs selected in the options of the MCP server. **Expose all LLM APIs** is on for a new setup. |
+| `/api/mcp/homeassistant` (from 2026.11) | Any template and any action, and the tools other integrations add to it, such as those of Spook that fix or ignore what it found. Served to any administrator, whatever is selected in the options of the MCP server, and its read-only option does not apply. |
+| `/api/mcp` | The LLM APIs selected in the options of the MCP server. **Expose all AI tools** is on for a new setup. |
 | `/api/mcp/assist` | Reads and controls what is exposed under **Voice assistants**. An exposed entity you hide or protect here is still listed and switched. It is open to any user. |
 | Other LLM APIs | Whatever they offer, such as those of KNX or custom integrations. |
 | The Model Context Protocol integration | The tools of the remote servers it connects to, which can do anything those servers can. |
+| The [debug console](https://www.home-assistant.io/integrations/debug_console) (from 2026.11) | Any Python code inside Home Assistant, with access to everything, if `debug_console:` is in `configuration.yaml`. It is for administrators. |
 | Other tools of your client | Other MCP servers, a shell, or access to files. These may also reach the token. |
 
 What happens through these routes does not show up in [recent activity](#recent-activity)
-either. To narrow them:
+either. From 2026.11, Home Assistant's own **Action history**, under **Settings > Tools**,
+lists every action called through any of them, with the user and the context. Reading
+leaves no trace there. To narrow them:
 
 1. **Connect your client to `/api/mcp/llm_admin_tools`.** It then offers the model only these
    tools. The address decides what the model is offered, not what the token allows.
 2. **Keep the token away from the model.** Don't give a model that has these tools a shell
    or any way to read its client's configuration, and use HTTPS.
 3. **Turn off what you do not use.** In the options of the Model Context Protocol Server,
-   turn off **Expose all LLM APIs** and select what you need. That only narrows `/api/mcp`.
-   To remove an LLM API completely, disable the integration that provides it, where
-   possible.
+   under [**Settings > System > AI**](https://my.home-assistant.io/redirect/config_ai/) from
+   2026.11, turn off **Expose all AI tools** and select what you need. Turn on **Require an
+   administrator account**, which a setup from before 2026.11 has off, and **Read-only** if
+   a client should only look. All of these only narrow `/api/mcp`. To remove an LLM API
+   completely, disable the integration that provides it, where possible. Leave the debug
+   console out of `configuration.yaml` unless you are using it.
 4. **If you keep Assist, keep its list in sync.** Anything you hide or protect here should
    not be exposed under **Voice assistants**.
 
@@ -615,7 +621,7 @@ automations, helpers and so on.
 | Symptom | Cause and fix |
 | --- | --- |
 | Setup fails, saying a secrets file could not be read | Fix `secrets.yaml` or `esphome/secrets.yaml`. No tool is served until they can be read, so secrets cannot leak. |
-| The client shows no tools from this integration | The user behind the token is not an administrator. At `/api/mcp`, also check that the API is selected in the MCP server's options. |
+| The client shows no tools from this integration | The user behind the token is not an administrator. At `/api/mcp`, also check that the API is selected in the MCP server's options, under **AI tools** from 2026.11. |
 | The client shows the old tools or none after an update | Reconnect the client; many cache the tool list. |
 | Every call answers that the tools are out of date | The settings changed after the client loaded the tools. Reconnect the client. An assistant of Home Assistant keeps the tools for a whole conversation from 2026.11, so start a new one. |
 | `get_capabilities` lists a tool that changes things, but the client does not have it | At `/api/mcp`, the read-only option of the MCP server, new in 2026.11, leaves out every such tool. It does not apply at `/api/mcp/llm_admin_tools`. |
