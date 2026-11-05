@@ -35,7 +35,7 @@ change. It starts out read-only.
 | After a change | Logbook | Logbook | Logbook, and [a record](#recent-activity) with the client's reason, kept for you |
 
 The first column was checked against the source code of 2026.10.4, the second against that of
-the 2026.11 beta. From 2026.11, Assist stays as in the first column, and the second describes
+2026.11.0. From 2026.11, Assist stays as in the first column, and the second describes
 what the new API adds.
 
 These limits apply to this integration's tools, not to your access token. **Read [what
@@ -364,7 +364,7 @@ registries, so it also covers an integration that failed to start.
 | Here | In Home Assistant from 2026.11 | What differs |
 | --- | --- | --- |
 | `call_service`, `find_services` | `homeassistant__call_action`, `homeassistant__search_actions` | Here only what you allow, on entities named one by one, with `dry_run` and a reason. There any action, on any target, with templates. |
-| `get_system_log`, `get_full_log` | `system_log__get_entries`, `system_log__get_logs` | Here hidden loggers are left out, all of redaction applies, and the full log needs a reason. |
+| `get_system_log`, `get_full_log` | `system_log__get_entries`, and `system_log__get_logs` or, with a Supervisor, `hassio__get_logs` | Here hidden loggers are left out, all of redaction applies, and the full log needs a reason. |
 | `get_entity_history` | `history__get_history` | Here states of any entity too. There statistics only, of sensors that have them. |
 | `list_integrations`, `get_system_info` | `config__get_config_entries`, `system_health__get_system_info` | Here held to what you hide and withhold. |
 | `list_entities`, `list_devices`, `list_areas` | `search__search` | Here states, attributes and details, filtered. There IDs and names of what matches, with nothing hidden. |
@@ -453,7 +453,9 @@ administrator, and an administrator can do all of the above.
   failed.
 - A host name in free text can only be withheld by adding it under text to withhold: in free
   text, only IP addresses, MAC addresses and email addresses are recognized. Under a key
-  such as `hostname` it is recognized.
+  such as `hostname` it is recognized. The same holds for names: from 2026.11, network
+  integrations such as UniFi or FRITZ!Box give each client a device, often named after its
+  host name, and `list_devices` shows that name as it is.
 - A version number with four parts can look like a public IP address, and is then withheld
   along with personal details.
 - `list_helpers` withholds tag IDs, because anyone who knows one can act as if the tag had
@@ -610,6 +612,8 @@ automations, helpers and so on.
 | Setup fails, saying a secrets file could not be read | Fix `secrets.yaml` or `esphome/secrets.yaml`. No tool is served until they can be read, so secrets cannot leak. |
 | The client shows no tools from this integration | The user behind the token is not an administrator. At `/api/mcp`, also check that the API is selected in the MCP server's options. |
 | The client shows the old tools or none after an update | Reconnect the client; many cache the tool list. |
+| Every call answers that the tools are out of date | The settings changed after the client loaded the tools. Reconnect the client. An assistant of Home Assistant keeps the tools for a whole conversation from 2026.11, so start a new one. |
+| `get_capabilities` lists a tool that changes things, but the client does not have it | At `/api/mcp`, the read-only option of the MCP server, new in 2026.11, leaves out every such tool. It does not apply at `/api/mcp/llm_admin_tools`. |
 | `get_entity_history` says the recorder is not running | Enable the Recorder integration. |
 | `get_system_log` says it is unavailable | Enable the System Log integration, which `default_config` includes. |
 | `get_full_log` says it is unavailable | The log file is turned off and there is no Supervisor. Start Home Assistant with a log file. |

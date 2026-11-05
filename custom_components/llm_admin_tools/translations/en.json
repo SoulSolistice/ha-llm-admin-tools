@@ -186,7 +186,7 @@
       "message": "This tool failed with a {kind}. What it said is withheld, as it can quote anything. The owner can read it by turning on debug logging for this integration."
     },
     "tools_outdated": {
-      "message": "These tools are out of date, as the settings of LLM Admin Tools changed. Ask for the tools again."
+      "message": "These tools are out of date, as the settings of LLM Admin Tools changed. Ask for the tools again. In an assistant of Home Assistant, start a new conversation."
     },
     "trace_kind": {
       "message": "{entity_id} has no traces: only automations and scripts have them."
