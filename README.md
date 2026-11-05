@@ -236,7 +236,8 @@ deeply nested, and for every way of naming a target:
 - A service that is not allowed is refused. So is a service or event whose name is a
   template, and so is a blueprint, because what they would do cannot be checked.
 - Every entity and device it acts on must be one the client may change, and every one it
-  reads in a trigger or condition must be one the client may see.
+  reads in a trigger or condition, or leaves out of a target with `exclude` (from 2026.11),
+  must be one the client may see.
 - If anything is hidden or protected, areas, floors, labels and templated targets are
   refused, because what they reach is only known when they run.
 

@@ -152,7 +152,8 @@ async def test_allowed_services(
 
 
 @pytest.mark.parametrize(
-    "key", ["entity_id", "device_id", "area_id", "floor_id", "label_id", "target"]
+    "key",
+    ["entity_id", "device_id", "area_id", "floor_id", "label_id", "target", "exclude"],
 )
 @pytest.mark.usefixtures("allow_light")
 async def test_targets_cannot_be_in_data(

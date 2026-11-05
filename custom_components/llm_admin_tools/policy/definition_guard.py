@@ -21,8 +21,10 @@ _REFUSED_KEYS = frozenset(
 )
 _SERVICE_KEYS = ("action", "service")
 _TARGET_KEYS = frozenset(
-    {"area_id", "device_id", "entity_id", "floor_id", "label_id", "target"}
+    {"area_id", "device_id", "entity_id", "exclude", "floor_id", "label_id", "target"}
 )
+# From 2026.11 a target can leave out what it would otherwise reach.
+_EXCLUDE_KEY = "exclude"
 _GROUP_TARGET_KEYS = ("area_id", "floor_id", "label_id")
 # In entities, a mapping is a scene: a state for each entity.
 _ENTITY_KEYS = ("entity_id", "entities", "snapshot_entities")
@@ -125,6 +127,9 @@ class _Guard:
     @staticmethod
     def _part_of(key: str, part: _Part) -> _Part:
         """Return what the value of a key does, within the part it is in."""
+        if key == _EXCLUDE_KEY:
+            # What it names is left alone, so it only needs to be one that may be seen.
+            return _Part.READING
         if part is not _Part.ACTION:
             return part
         if key in _READING_KEYS:

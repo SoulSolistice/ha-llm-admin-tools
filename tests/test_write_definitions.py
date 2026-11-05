@@ -15,7 +15,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util.yaml import load_yaml
 
-from .conftest import CallTool, apply_options
+from .conftest import HA_2026_11, CallTool, apply_options
 
 _REASON = "Asked for by the user in this test."
 _TRIGGER = [{"trigger": "event", "event_type": "go"}]
@@ -435,6 +435,24 @@ async def restricted(
         ({"target": {"floor_id": "any"}}, "group_target_refused"),
         ({"target": {"label_id": "any"}}, "group_target_refused"),
         ({"target": {"device_id": "nope"}}, "device_not_found"),
+        (
+            {
+                "target": {
+                    "entity_id": "light.ok",
+                    "exclude": {"entity_id": "light.hidden"},
+                }
+            },
+            "entity_not_found",
+        ),
+        (
+            {
+                "target": {
+                    "entity_id": "light.kept",
+                    "exclude": {"entity_id": "light.ok"},
+                }
+            },
+            "entity_protected",
+        ),
     ],
 )
 async def test_targets_are_checked(
@@ -446,6 +464,25 @@ async def test_targets_are_checked(
     """Every way to name a target leads to the same check."""
     config = _automation(_service("light.turn_on", **fields))
     assert await _refusal(call_tool, config) == expected
+
+
+@pytest.mark.skipif(not HA_2026_11, reason="Targets can exclude from 2026.11")
+async def test_what_a_target_excludes_only_needs_to_be_seen(
+    call_tool: CallTool, restricted: dr.DeviceEntry
+) -> None:
+    """Leaving a protected entity out of a target protects it."""
+    target = {
+        "entity_id": ["light.ok", "light.free"],
+        "exclude": {"entity_id": "light.kept", "area_id": "any"},
+    }
+    result = await _write(
+        call_tool,
+        "automation",
+        "create",
+        config=_automation(_service("light.turn_on", target=target)),
+        dry_run=True,
+    )
+    assert result.data["dry_run"] is True
 
 
 async def test_protected_device_is_checked(
