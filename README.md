@@ -564,8 +564,8 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `get_system_info` | Versions of Home Assistant, the frontend, Python, the operating system and any Supervisor, with the platform and running state |
 | `get_health_report` | What is wrong right now, in one short answer |
 | `list_repairs` | The repairs Home Assistant lists, the most severe first |
-| `list_entities` | Entities and states; filter by domain, area, device, state or text |
-| `get_entity` | State, attributes and registry entry of one entity |
+| `list_entities` | Entities and states; filter by domain, area, device, state or text, which also finds aliases |
+| `get_entity` | State, attributes and registry entry of one entity, with its aliases and, from 2026.11, its name from before |
 | `get_entity_history` | History of up to 10 entities over up to about 7 days |
 | `get_extended_history` | Far more history of one entity, on request with a reason |
 | `list_devices` | Devices and child devices, with manufacturer, model, version and area |

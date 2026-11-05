@@ -25,11 +25,29 @@ class EntityFilter:
     include_diagnostic: bool = False
 
 
+@callback
+def _other_names(hass: HomeAssistant, entry: er.RegistryEntry | None) -> list[str]:
+    """Return the names an entity is also known by.
+
+    Those are its aliases, and from 2026.11 the name it had before names were made of
+    parts, which users and older definitions may still use.
+    """
+    if entry is None:
+        return []
+    compat_name: str | None = getattr(entry, "compat_name", None)
+    return [
+        *er.async_get_entity_aliases(hass, entry, allow_empty=True),
+        *([compat_name] if compat_name else []),
+    ]
+
+
 def _matches(
     state: State,
+    other_names: list[str],
     area_id: str | None,
     device_id: str | None,
     conditions: EntityFilter,
+    *,
     scrub: Callable[[str], str],
 ) -> bool:
     """Return if what a client would see of an entity meets the conditions.
@@ -45,9 +63,9 @@ def _matches(
     if conditions.search is None:
         return True
     needle = conditions.search.casefold()
-    return (
-        needle in scrub(state.entity_id).casefold()
-        or needle in scrub(state.name).casefold()
+    return any(
+        needle in scrub(name).casefold()
+        for name in (state.entity_id, state.name, *other_names)
     )
 
 
@@ -83,7 +101,10 @@ def list_entities(
         entry = entity_registry.async_get(state.entity_id)
         area_id = entity_area_id(hass, entry) if entry is not None else None
         device_id = entry.device_id if entry is not None else None
-        if not _matches(state, area_id, device_id, conditions, scrub):
+        other_names = _other_names(hass, entry)
+        if not _matches(
+            state, other_names, area_id, device_id, conditions, scrub=scrub
+        ):
             continue
         if not conditions.include_diagnostic and _is_background(entry):
             left_out += 1
@@ -147,6 +168,7 @@ def _registry_summary(hass: HomeAssistant, entry: er.RegistryEntry) -> dict[str,
         "area_id": entity_area_id(hass, entry),
         "name": entry.name,
         "original_name": entry.original_name,
+        "other_names": _other_names(hass, entry),
         "disabled_by": entry.disabled_by,
         "hidden_by": entry.hidden_by,
         "entity_category": entry.entity_category,

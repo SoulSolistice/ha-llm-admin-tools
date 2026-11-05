@@ -22,7 +22,7 @@ from homeassistant.helpers import (
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
-from .conftest import CallTool
+from .conftest import HA_2026_11, CallTool
 
 
 async def test_get_system_info(hass: HomeAssistant, call_tool: CallTool) -> None:
@@ -218,6 +218,27 @@ async def test_get_entity(populated: dict[str, str], call_tool: CallTool) -> Non
     assert result.data["attributes"]["device_class"] == "temperature"
     assert result.data["registry"]["platform"] == "test"
     assert result.data["registry"]["device_id"] == populated["device"]
+
+
+async def test_entities_are_found_by_their_other_names(
+    hass: HomeAssistant,
+    populated: dict[str, str],
+    entity_registry: er.EntityRegistry,
+    call_tool: CallTool,
+) -> None:
+    """Users and voice know an entity by its aliases, and by its name before 2026.11."""
+    entity_id = populated["entity"]
+    entity_registry.async_update_entity(entity_id, aliases=["Heizung", "Kessel"])
+    if HA_2026_11:
+        entity_registry._async_update_entity(entity_id, compat_name="Boiler water")
+    found = await call_tool("list_entities", search="kessel")
+    assert [item["entity_id"] for item in found.data["items"]] == [entity_id]
+    registry = (await call_tool("get_entity", entity_id=entity_id)).data["registry"]
+    assert registry["other_names"][:2] == ["Heizung", "Kessel"]
+    if HA_2026_11:
+        assert registry["other_names"][2] == "Boiler water"
+        found = await call_tool("list_entities", search="boiler water")
+        assert [item["entity_id"] for item in found.data["items"]] == [entity_id]
 
 
 async def test_get_entity_shortens_long_attributes(

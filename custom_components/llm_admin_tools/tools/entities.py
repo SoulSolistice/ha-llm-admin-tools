@@ -35,7 +35,8 @@ class ListEntitiesTool(ReadOnlyTool):
             probatio.Optional("device_id", description="Only this device."): TEXT,
             probatio.Optional("state", description="Only this exact state."): TEXT,
             probatio.Optional(
-                "search", description="Text to find in the entity ID or name."
+                "search",
+                description="Text to find in the entity ID, name or aliases.",
             ): TEXT,
             probatio.Optional(
                 "include_diagnostic",
