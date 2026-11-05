@@ -21,6 +21,7 @@ from custom_components.llm_admin_tools.const import (
     CONF_EXCLUDED_LOGGERS,
 )
 from homeassistant.components.homeassistant.exposed_entities import (
+    ExposedEntities,
     async_expose_entity,
 )
 from homeassistant.core import HomeAssistant
@@ -406,6 +407,66 @@ async def test_assist_exposed_only(
     hass: HomeAssistant, world: World, call_tool: CallTool
 ) -> None:
     """The tools can be limited to what is exposed to Assist."""
+    assert await async_setup_component(hass, "homeassistant", {})
+    async_expose_entity(hass, "conversation", _FREE_ENTITY, True)
+    async_expose_entity(hass, "conversation", world.boiler, False)
+    await apply_options(hass, world.entry, **{CONF_ASSIST_EXPOSED_ONLY: True})
+    assert await _listed(call_tool) == [_FREE_ENTITY]
+    await _assert_hidden(call_tool, world.boiler)
+
+
+async def test_assist_exposure_is_read_without_storing(
+    hass: HomeAssistant,
+    world: World,
+    call_tool: CallTool,
+    entity_registry: er.EntityRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Where core can tell without storing a default, a read changes nothing."""
+    assert await async_setup_component(hass, "homeassistant", {})
+    asked: list[str] = []
+
+    def read(_self: ExposedEntities, assistant: str, entity_id: str) -> bool:
+        assert assistant == "conversation"
+        asked.append(entity_id)
+        return entity_id == _FREE_ENTITY
+
+    monkeypatch.setattr(ExposedEntities, "async_get_should_expose", read, raising=False)
+    await apply_options(hass, world.entry, **{CONF_ASSIST_EXPOSED_ONLY: True})
+    assert await _listed(call_tool) == [_FREE_ENTITY]
+    assert world.boiler in asked
+    entry = entity_registry.async_get(world.boiler)
+    assert entry is not None
+    assert "conversation" not in entry.options
+
+
+@pytest.mark.skipif(
+    not hasattr(ExposedEntities, "async_get_should_expose"),
+    reason="Home Assistant 2026.10 and older store the default when asked",
+)
+async def test_assist_exposure_is_read_without_storing_in_core(
+    hass: HomeAssistant,
+    world: World,
+    call_tool: CallTool,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """The same with core's own way of reading it."""
+    assert await async_setup_component(hass, "homeassistant", {})
+    await apply_options(hass, world.entry, **{CONF_ASSIST_EXPOSED_ONLY: True})
+    await _listed(call_tool)
+    entry = entity_registry.async_get(world.boiler)
+    assert entry is not None
+    assert "should_expose" not in entry.options.get("conversation", {})
+
+
+async def test_assist_exposure_up_to_2026_10(
+    hass: HomeAssistant,
+    world: World,
+    call_tool: CallTool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without the way to read it alone, the setting still holds."""
+    monkeypatch.delattr(ExposedEntities, "async_get_should_expose", raising=False)
     assert await async_setup_component(hass, "homeassistant", {})
     async_expose_entity(hass, "conversation", _FREE_ENTITY, True)
     async_expose_entity(hass, "conversation", world.boiler, False)

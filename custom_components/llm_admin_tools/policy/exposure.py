@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+from homeassistant.components.homeassistant.const import DATA_EXPOSED_ENTITIES
 from homeassistant.components.homeassistant.exposed_entities import (
     async_should_expose,
 )
@@ -15,6 +16,19 @@ from .settings import ExposureSettings
 _ASSISTANT = "conversation"
 # Home Assistant names a logger after each of these, with their name in its records.
 _DOMAINS_WITH_OWN_LOGGER = ("automation", "script")
+
+
+def _exposed_to_assist(hass: HomeAssistant, entity_id: str) -> bool:
+    """Return if an entity is exposed to Assist.
+
+    From 2026.11 this can be read without storing anything. Up to 2026.10 the only way
+    to ask stores the default for an entity that has no setting yet, as Assist does.
+    """
+    exposed_entities = hass.data[DATA_EXPOSED_ENTITIES]
+    read = getattr(exposed_entities, "async_get_should_expose", None)
+    if read is not None:
+        return bool(read(_ASSISTANT, entity_id))
+    return async_should_expose(hass, _ASSISTANT, entity_id)
 
 
 def _parent_device(
@@ -175,6 +189,6 @@ class ExposurePolicy:
             return False
         if not self._entity_source_allowed(entity_id):
             return False
-        return not settings.assist_exposed_only or async_should_expose(
-            self._hass, _ASSISTANT, entity_id
+        return not settings.assist_exposed_only or _exposed_to_assist(
+            self._hass, entity_id
         )
