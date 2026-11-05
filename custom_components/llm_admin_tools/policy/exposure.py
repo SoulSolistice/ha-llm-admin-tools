@@ -9,6 +9,7 @@ from homeassistant.components.homeassistant.exposed_entities import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.entity import entity_sources
+from homeassistant.loader import IntegrationNotLoaded, async_get_loaded_integration
 
 from .settings import ExposureSettings
 
@@ -98,6 +99,7 @@ class ExposurePolicy:
         outside it, so this settles once what the filter then goes by.
         """
         excluded = self.settings.excluded_loggers
+        hidden_trees = self._hidden_integration_loggers()
         hidden = {
             f"homeassistant.components.{entity_id}"
             for entity_id in {
@@ -112,9 +114,41 @@ class ExposurePolicy:
         }
 
         def allowed(name: str) -> bool:
-            return name not in hidden and not any(text in name for text in excluded)
+            return (
+                name not in hidden
+                and not any(
+                    name == tree or name.startswith(f"{tree}.") for tree in hidden_trees
+                )
+                and not any(text in name for text in excluded)
+            )
 
         return allowed
+
+    @callback
+    def _hidden_integration_loggers(self) -> tuple[str, ...]:
+        """Return the loggers of each integration with a hidden entry.
+
+        A record does not say which entry it is about, so all of the integration's are
+        left out, with those of the libraries its manifest names, even if another
+        integration uses them as well.
+        """
+        domains = {
+            entry.domain
+            for entry in self._hass.config_entries.async_entries()
+            if not self.integration_allowed(entry.entry_id)
+        }
+        loggers: list[str] = []
+        for domain in sorted(domains):
+            loggers += (
+                f"homeassistant.components.{domain}",
+                f"custom_components.{domain}",
+            )
+            try:
+                integration = async_get_loaded_integration(self._hass, domain)
+            except IntegrationNotLoaded:
+                continue
+            loggers += integration.loggers or ()
+        return tuple(loggers)
 
     def _labels_allowed(self, labels: set[str]) -> bool:
         return self.settings.excluded_labels.isdisjoint(labels)

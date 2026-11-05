@@ -160,7 +160,7 @@ answer as for a mistyped name.
 | Hide entities | Individual entities, including automations and scripts, with the service a script has of its own |
 | Hide areas | The area, its devices and their entities |
 | Hide labels | Entities and devices with the label |
-| Hide integrations | The config entry, its devices and their entities |
+| Hide integrations | The config entry, its devices and their entities, and the log records of the integration |
 | Logger name to hide | Log records whose logger name contains the text |
 
 Whatever hides a device also hides its child devices and the entities of both. An entity or
@@ -477,8 +477,11 @@ administrator, and an administrator can do all of the above.
 
 - The configuration of an automation, or a log message, can still mention a hidden entity by
   name. Hide the automation or logger too, or add the name as text to withhold. Hiding an
-  automation or script also hides the logger named after it, but hiding an integration does
-  not hide its logger.
+  automation or script also hides the logger named after it.
+- A log record does not say which config entry it is about. Hiding one entry of an
+  integration hides the records of all its entries, and of the libraries its manifest names,
+  even where another integration uses the same library. A library the manifest does not name
+  is not hidden; hide it by name.
 - A repair is left out when its details name a hidden entity by ID. A repair that describes
   it in other words is kept.
 - A log is plain text, so `get_full_log` treats a message that imitates the start of a

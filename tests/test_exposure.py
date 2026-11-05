@@ -5,7 +5,11 @@ import logging
 from typing import Any
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    MockModule,
+    mock_integration,
+)
 from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
 )
@@ -376,6 +380,43 @@ async def test_excluded_logger(
     await apply_options(hass, world.entry, **{CONF_EXCLUDED_LOGGERS: ["private_part"]})
     result = await call_tool("get_system_log")
     assert [item["message"] for item in result.data["items"]] == [["show me"]]
+
+
+async def test_hidden_integration_hides_its_loggers(
+    hass: HomeAssistant, world: World, call_tool: CallTool
+) -> None:
+    """Its own loggers and those its manifest names go, with what is below them."""
+    assert await async_setup_component(hass, "system_log", {})
+    await hass.async_block_till_done()
+    await apply_options(
+        hass, world.entry, **{CONF_EXCLUDED_INTEGRATIONS: [world.other_entry_id]}
+    )
+
+    async def shown() -> list[str]:
+        result = await call_tool("get_system_log")
+        return sorted(item["message"][0] for item in result.data["items"])
+
+    for name in (
+        "homeassistant.components.other",
+        "homeassistant.components.other.sensor",
+        "custom_components.other.api",
+        "homeassistant.components.others",
+        "otherlib.client",
+        "otherlibrary",
+    ):
+        logging.getLogger(name).error(name)
+    await hass.async_block_till_done()
+    # Not loaded, so what its manifest names is not known.
+    assert await shown() == [
+        "homeassistant.components.others",
+        "otherlib.client",
+        "otherlibrary",
+    ]
+
+    mock_integration(
+        hass, MockModule("other", partial_manifest={"loggers": ["otherlib"]})
+    )
+    assert await shown() == ["homeassistant.components.others", "otherlibrary"]
 
 
 async def test_excluded_definition(
