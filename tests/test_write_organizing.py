@@ -28,7 +28,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.setup import async_setup_component
 
-from .conftest import CallTool, apply_options
+from .conftest import SETUP_SUCCEEDED, CallTool, apply_options
 
 _REASON = "Asked for by the user in this test."
 
@@ -692,8 +692,8 @@ async def test_config_entry_operations(
         hass,
         MockModule(
             "test",
-            async_setup_entry=AsyncMock(return_value=True),
-            async_unload_entry=AsyncMock(return_value=True),
+            async_setup_entry=AsyncMock(return_value=SETUP_SUCCEEDED),
+            async_unload_entry=AsyncMock(return_value=SETUP_SUCCEEDED),
         ),
     )
     mock_platform(hass, "test.config_flow", None)

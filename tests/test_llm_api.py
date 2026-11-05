@@ -12,7 +12,7 @@ from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers import llm
 from homeassistant.setup import async_setup_component
 
-from .conftest import CallTool, make_llm_context
+from .conftest import CORE_CHECKS_ADMIN, CallTool, make_llm_context
 
 
 async def test_admin_gets_all_tools(
@@ -42,9 +42,16 @@ async def test_non_admin_gets_no_tools(
     init_integration: MockConfigEntry,
     hass_read_only_user: User,
 ) -> None:
-    """A non-admin is offered nothing, and no instructions either."""
+    """A non-admin is offered nothing, and no instructions either.
+
+    From 2026.11 Home Assistant refuses first. The API offers nothing either way.
+    """
     context = make_llm_context(hass_read_only_user.id)
-    instance = await llm.async_get_api(hass, DOMAIN, context)
+    if CORE_CHECKS_ADMIN:
+        with pytest.raises(Unauthorized):
+            await llm.async_get_api(hass, DOMAIN, context)
+    api = next(api for api in llm.async_get_apis(hass) if api.id == DOMAIN)
+    instance = await api.async_get_api_instance(context)
     assert instance.tools == []
     assert instance.api_prompt == ""
 
@@ -54,10 +61,17 @@ async def test_merging_keeps_assist_working_for_non_admin(
     init_integration: MockConfigEntry,
     hass_read_only_user: User,
 ) -> None:
-    """A non-admin served merged APIs keeps Assist and gets none of these tools."""
+    """A non-admin served merged APIs keeps Assist and gets none of these tools.
+
+    From 2026.11 Home Assistant refuses a non-admin all of them instead.
+    """
     assert await async_setup_component(hass, "homeassistant", {})
     assert await async_setup_component(hass, "llm", {})
     context = make_llm_context(hass_read_only_user.id)
+    if CORE_CHECKS_ADMIN:
+        with pytest.raises(Unauthorized):
+            await llm.async_get_api(hass, [llm.LLM_API_ASSIST, DOMAIN], context)
+        return
     instance = await llm.async_get_api(hass, [llm.LLM_API_ASSIST, DOMAIN], context)
     names = [tool.name for tool in instance.tools]
     assert any(name.startswith("assist__") for name in names)

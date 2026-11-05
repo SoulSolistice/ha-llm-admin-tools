@@ -21,7 +21,7 @@ from custom_components.llm_admin_tools.tools.catalog import (
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from .conftest import apply_options
+from .conftest import CORE_CHECKS_ADMIN, HA_2026_11, apply_options
 
 _HEADERS = {
     "Accept": "application/json, text/event-stream",
@@ -29,7 +29,7 @@ _HEADERS = {
     "MCP-Protocol-Version": "2025-06-18",
 }
 _API_URL = f"/api/mcp/{DOMAIN}"
-# Merged APIs prefix each tool with the slug of the API name.
+# Merged APIs prefix tools with the slug of the API, from 2026.11 only on a conflict.
 _NAMESPACE = "llm-admin-tools"
 
 
@@ -40,7 +40,12 @@ async def mcp_server(hass: HomeAssistant, init_integration: MockConfigEntry) -> 
     assert await async_setup_component(hass, "llm", {})
     entry = MockConfigEntry(
         domain="mcp_server",
-        data={"all_llm_apis": True, "llm_hass_api": [], "require_admin": True},
+        data={
+            "all_llm_apis": True,
+            "llm_hass_api": [],
+            "require_admin": True,
+            "read_only": False,
+        },
         minor_version=99,
     )
     entry.add_to_hass(hass)
@@ -184,7 +189,9 @@ async def test_non_admin_is_refused_on_api_endpoint(
     """The per-API endpoint refuses a non-admin."""
     client = await hass_client(hass_read_only_access_token)
     status, _ = await _rpc(client, _API_URL, "tools/list")
-    assert status == HTTPStatus.UNAUTHORIZED
+    assert status == (
+        HTTPStatus.FORBIDDEN if CORE_CHECKS_ADMIN else HTTPStatus.UNAUTHORIZED
+    )
 
 
 async def test_anonymous_is_refused(
@@ -207,8 +214,8 @@ async def test_merged_endpoint_namespaces_tools(
     assert status == HTTPStatus.OK
     assert body is not None
     names = {tool["name"] for tool in body["result"]["tools"]}
-    assert f"{_NAMESPACE}__get_entity" in names
-    assert any(name.startswith("assist__") for name in names)
+    assert ("get_entity" if HA_2026_11 else f"{_NAMESPACE}__get_entity") in names
+    assert any(name.endswith("GetLiveContext") for name in names)
 
 
 async def test_merged_endpoint_gives_non_admin_none_of_our_tools(
@@ -222,7 +229,12 @@ async def test_merged_endpoint_gives_non_admin_none_of_our_tools(
     assert await async_setup_component(hass, "llm", {})
     entry = MockConfigEntry(
         domain="mcp_server",
-        data={"all_llm_apis": True, "llm_hass_api": [], "require_admin": False},
+        data={
+            "all_llm_apis": True,
+            "llm_hass_api": [],
+            "require_admin": False,
+            "read_only": False,
+        },
         minor_version=99,
     )
     entry.add_to_hass(hass)
@@ -233,9 +245,14 @@ async def test_merged_endpoint_gives_non_admin_none_of_our_tools(
     status, body = await _rpc(client, "/api/mcp", "tools/list")
     assert status == HTTPStatus.OK
     assert body is not None
+    if CORE_CHECKS_ADMIN:
+        # From 2026.11 Home Assistant refuses a non-admin every API merged with this.
+        assert "result" not in body
+        assert body["error"]
+        return
     names = {tool["name"] for tool in body["result"]["tools"]}
-    assert any(name.startswith("assist__") for name in names)
-    assert not [name for name in names if name.startswith(_NAMESPACE)]
+    assert any(name.endswith("GetLiveContext") for name in names)
+    assert not [name for name in names if "get_entity" in name]
 
 
 @pytest.mark.usefixtures("mcp_server")

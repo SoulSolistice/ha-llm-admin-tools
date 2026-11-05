@@ -10,10 +10,17 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.llm_admin_tools.const import DOMAIN
 from custom_components.llm_admin_tools.policy.secret_values import SecretFile
 from homeassistant.auth.models import User
+from homeassistant.const import MAJOR_VERSION, MINOR_VERSION
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import llm
 
 SECRET_VALUE = "hunter2-the-secret"
+# From 2026.11, Home Assistant refuses an API that requires an admin before it runs.
+CORE_CHECKS_ADMIN = hasattr(llm, "async_get_authorized_api_instance")
+HA_2026_11 = (MAJOR_VERSION, MINOR_VERSION) >= (2026, 11)
+# What the setup of a config entry returns when it worked. From 2026.11 that is None,
+# and True fails for an integration that is not custom; up to 2026.10 None fails.
+SETUP_SUCCEEDED = None if HA_2026_11 else True
 
 type CallTool = Callable[..., Awaitable[llm.ToolResult]]
 
