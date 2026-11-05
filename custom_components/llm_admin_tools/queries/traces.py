@@ -60,13 +60,38 @@ async def async_list_runs(
     return sorted(runs, key=lambda run: run["start"], reverse=True)
 
 
-def _step(step: dict[str, Any], *, variables: bool) -> dict[str, Any]:
+@callback
+def started_run(
+    hass: HomeAssistant, policy: ExposurePolicy, child: dict[str, str] | None
+) -> dict[str, str] | None:
+    """Return the run a step started, to ask for in turn, if the client may see it."""
+    if child is None or child["domain"] not in TRACE_KINDS:
+        return None
+    component = component_of(hass, child["domain"])
+    entity_ids = [
+        entity.entity_id
+        for entity in (component.entities if component is not None else ())
+        if entity.unique_id == child["item_id"]
+    ]
+    if not entity_ids or not policy.entity_allowed(entity_ids[0]):
+        return None
+    return {"entity_id": entity_ids[0], "run_id": child["run_id"]}
+
+
+def _step(
+    hass: HomeAssistant,
+    policy: ExposurePolicy,
+    step: dict[str, Any],
+    *,
+    variables: bool,
+) -> dict[str, Any]:
     """Return what happened in a step, which can carry far more than that."""
     return without_empty_fields(
         {
             "path": step["path"],
             "result": step.get("result"),
             "error": step.get("error"),
+            "started": started_run(hass, policy, step.get("child_id")),
             "variables": step.get("changed_variables") if variables else None,
         }
     )
@@ -79,6 +104,7 @@ async def async_get_run(
     item_id: str,
     run_id: str,
     *,
+    policy: ExposurePolicy,
     variables: bool,
 ) -> dict[str, Any]:
     """Return each step of a run; get_definition has the configuration."""
@@ -91,7 +117,7 @@ async def async_get_run(
     return {
         **_run(trace),
         "steps": [
-            _step(step, variables=variables)
+            _step(hass, policy, step, variables=variables)
             for steps in trace["trace"].values()
             for step in steps
         ],

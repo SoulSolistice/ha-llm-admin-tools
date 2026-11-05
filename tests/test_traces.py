@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.llm_admin_tools.queries.traces import started_run
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.setup import async_setup_component
@@ -56,7 +57,14 @@ async def core(hass: HomeAssistant) -> None:
         },
     )
     assert await async_setup_component(
-        hass, "script", {"script": {"ran": {"sequence": [{"delay": {"seconds": 0}}]}}}
+        hass,
+        "script",
+        {
+            "script": {
+                "ran": {"sequence": [{"delay": {"seconds": 0}}]},
+                "calls": {"sequence": [{"action": "script.ran"}]},
+            }
+        },
     )
     await hass.async_block_till_done()
     hass.bus.async_fire(_EVENT)
@@ -106,6 +114,42 @@ async def test_shows_the_steps_of_a_run(call_tool: CallTool) -> None:
     assert any("variables" in step for step in full["steps"])
     assert SECRET_VALUE not in str(full)
     assert "plain" in str(full)
+
+
+@pytest.mark.usefixtures("core", "init_integration")
+async def test_follows_a_run_into_the_script_it_started(
+    hass: HomeAssistant, call_tool: CallTool
+) -> None:
+    """The step names the run of the script, which can be asked for in turn."""
+    await hass.services.async_call("script", "calls", blocking=True)
+    await hass.async_block_till_done()
+    run_id = (await _runs(call_tool, "script.calls"))["items"][0]["run_id"]
+    steps = (await _runs(call_tool, "script.calls", run_id=run_id))["steps"]
+    started = next(step["started"] for step in steps if "started" in step)
+    assert started["entity_id"] == "script.ran"
+    child = await _runs(call_tool, "script.ran", run_id=started["run_id"])
+    assert child["outcome"] == "finished"
+
+
+@pytest.mark.usefixtures("core")
+async def test_a_started_run_is_named_only_when_it_may_be_seen(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """The tool needs nothing hidden; what it builds on does not rely on that."""
+    policy = init_integration.runtime_data.exposure
+    child = {"domain": "script", "item_id": "ran", "run_id": "1"}
+    assert started_run(hass, policy, child) == {
+        "entity_id": "script.ran",
+        "run_id": "1",
+    }
+    for other in (
+        {**child, "domain": "light"},
+        {**child, "item_id": "deleted"},
+        None,
+    ):
+        assert started_run(hass, policy, other) is None
+    await apply_options(hass, init_integration, excluded_entities=["script.ran"])
+    assert started_run(hass, init_integration.runtime_data.exposure, child) is None
 
 
 @pytest.mark.usefixtures("core", "init_integration")

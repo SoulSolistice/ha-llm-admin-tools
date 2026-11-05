@@ -350,7 +350,7 @@ These cover what Home Assistant's API has no tool for:
 
 | Tools | What they add |
 | --- | --- |
-| `get_automation_trace` | How an automation or script ran, step by step, and where it stopped |
+| `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
 | `list_definitions`, `get_definition`, `write_definition` | Read and write automations, scripts and scenes, within the [checks above](#what-can-be-changed) |
 | `list_repairs`, in `get_health_report` too | What is listed as broken, the most severe first |
 | `update_entity`, `update_device`, `write_registry_item` | Tidy up names, areas, floors, labels and categories |
@@ -572,7 +572,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `list_integrations` | Config entries with state and failure reason |
 | `list_definitions` | Automations, scripts or scenes |
 | `get_definition` | The configuration of one automation, script or scene |
-| `get_automation_trace` | How an automation or script ran, step by step, and where it stopped |
+| `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
 | `find_references` | What names an entity or device, or an entity that does not exist |
 | `list_helpers` | Counters, input helpers, persons, schedules, tags, timers and zones |
 | `list_dashboards` | Dashboards other than the default |

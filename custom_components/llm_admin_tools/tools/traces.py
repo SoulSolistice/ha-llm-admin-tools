@@ -24,7 +24,8 @@ class GetAutomationTraceTool(BaseTool):
     description = (
         "List the last runs of an automation or script, with what triggered each, how "
         "it ended and its last step. Use this to find out why one did or did not act. "
-        "run_id returns each step of one run. Home Assistant keeps few runs, none "
+        "run_id returns each step of one run; a step that started a script names "
+        "that run, to ask for in turn. Home Assistant keeps few runs, none "
         "across a change, and none for an automation without an ID. A trace holds "
         "values of whatever a run looked at, so this needs nothing to be hidden. "
         f"{DATA_NOTICE}"
@@ -75,6 +76,7 @@ class GetAutomationTraceTool(BaseTool):
                     kind,
                     item_id,
                     run_id,
+                    policy=self.exposure,
                     variables=args["include_variables"],
                 ),
             }
