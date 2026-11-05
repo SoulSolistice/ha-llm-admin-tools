@@ -168,17 +168,24 @@ class WriteTool(BaseTool):
             return {"dry_run": True, **outcome}
 
         self._runtime.journal.require_capacity()
+        context = llm_context.context
         success = False
         try:
             result = await plan.apply()
             success = True
         finally:
-            context = llm_context.context
             self._runtime.journal.record(
                 self.name,
                 self._runtime.redactor.scrub_text(plan.summary),
                 context.user_id if context else None,
                 success,
                 self._stated_reason(args),
+                context_id=context.id if context else None,
             )
-        return {"done": True, **outcome, **({"result": result} if result else {})}
+        return {
+            "done": True,
+            **outcome,
+            **({"result": result} if result else {}),
+            # What logbook and Action history know an action it called by.
+            **({"context_id": context.id} if context else {}),
+        }

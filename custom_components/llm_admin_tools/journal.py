@@ -66,8 +66,13 @@ class WriteJournal:
         user_id: str | None,
         success: bool,
         reason: str | None,
+        *,
+        context_id: str | None = None,
     ) -> None:
-        """Record one change that was attempted."""
+        """Record one change that was attempted.
+
+        The context ID is what logbook and Action history know the change by.
+        """
         self._records.append(
             {
                 "timestamp": dt_util.utcnow().isoformat(),
@@ -76,6 +81,7 @@ class WriteJournal:
                 "user_id": user_id,
                 "success": success,
                 "reason": reason,
+                **({"context_id": context_id} if context_id else {}),
             }
         )
         self._store.async_delay_save(self._data, _SAVE_DELAY_SECONDS)

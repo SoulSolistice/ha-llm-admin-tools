@@ -202,12 +202,14 @@ async def test_changes_are_journaled(
 ) -> None:
     """The journal says what changed and why, with credentials taken out."""
     await _allow_services(hass, init_integration, "light")
-    async_mock_service(hass, "light", "turn_on")
-    await call_tool(
+    calls = async_mock_service(hass, "light", "turn_on")
+    result = await call_tool(
         "call_service",
         **{**_LIGHT_ON, "reason": "User wants it, hunter2-the-secret  stays out."},
     )
     record = init_integration.runtime_data.journal.recent()[-1]
+    # Logbook and Action history know the call by it.
+    assert record["context_id"] == result.data["context_id"] == calls[0].context.id
     assert record["tool"] == "call_service"
     assert record["summary"] == "light.turn_on on light.a"
     assert record["success"] is True

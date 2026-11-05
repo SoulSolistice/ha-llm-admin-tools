@@ -274,7 +274,9 @@ regardless of this setting.
    problems that appear while the change runs can still make it fail, such as an entity ID
    already being taken.
 4. **Changes are limited** to 60 per minute, which caps a runaway loop at that rate.
-5. **Changes are recorded** in a separate journal, so reads cannot push them out.
+5. **Changes are recorded** in a separate journal, so reads cannot push them out. The record
+   and the result hold the ID of the context the change ran in, by which the logbook, and
+   from 2026.11 Action history, know what it called.
 6. **The result includes the previous state**, where that is cheap to get, so a client can
    undo the change. If that or the result is too long to return, `before_left_out`,
    `affects_left_out` or `result_left_out` says so, because a client told that a completed
