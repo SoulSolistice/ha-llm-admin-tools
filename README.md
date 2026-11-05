@@ -1,6 +1,6 @@
 # LLM Admin Tools
 
-[![HACS custom repository](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![Marketplace custom repository](https://img.shields.io/badge/Marketplace-Custom-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace/)
 
 Administrator access to Home Assistant for an LLM client such as Claude, within limits that
 you set.
@@ -55,15 +55,20 @@ You need:
   the tools. Its page explains how a client signs in.
 - A user with administrator rights; the tools refuse everyone else.
 
-With [HACS](https://hacs.xyz):
+From 2026.11, with the [Marketplace](https://www.home-assistant.io/integrations/marketplace/):
 
-[![Open this repository in HACS on your Home Assistant.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=SoulSolistice&repository=ha-llm-admin-tools&category=integration)
+[![Open this repository in the Marketplace on your Home Assistant.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SoulSolistice&repository=ha-llm-admin-tools&category=integration)
 
-1. Open this repository in HACS with the button above, or add it there as a [custom
-   repository](https://hacs.xyz/docs/faq/custom_repositories/) of the type **Integration**.
-2. Download **LLM Admin Tools**, and restart Home Assistant.
+1. Open this repository with the button above, or go to **Settings > Marketplace**, select
+   **Add from link** and enter `SoulSolistice/ha-llm-admin-tools`. Adding a link needs a
+   GitHub connection, which only reads public information.
+2. Install **LLM Admin Tools**, and restart Home Assistant when the repair asks you to.
 
-Without HACS, copy `custom_components/llm_admin_tools` to the `custom_components` folder of
+Up to 2026.10, add this repository to [HACS](https://hacs.xyz) as a [custom
+repository](https://hacs.xyz/docs/faq/custom_repositories/) of the type **Integration**,
+download it and restart. From 2026.11, HACS moves its content to the Marketplace by itself.
+
+Otherwise, copy `custom_components/llm_admin_tools` to the `custom_components` folder of
 your configuration directory, and restart Home Assistant.
 
 Then, either way:
