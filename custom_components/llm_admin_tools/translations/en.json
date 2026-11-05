@@ -307,6 +307,7 @@
     "tool": {
       "options": {
         "find_references": "Find what uses an entity or device, or names what does not exist",
+        "get_action_history": "Read which actions were called, and by what",
         "get_automation_trace": "Read how an automation or script ran",
         "get_capabilities": "Report what is available and what is restricted",
         "get_dashboard": "Read the configuration of a dashboard",

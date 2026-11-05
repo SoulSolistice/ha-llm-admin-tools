@@ -5,7 +5,10 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    mock_component,
+)
 
 from custom_components.llm_admin_tools.const import DOMAIN
 from custom_components.llm_admin_tools.policy.secret_values import SecretFile
@@ -13,6 +16,7 @@ from homeassistant.auth.models import User
 from homeassistant.const import MAJOR_VERSION, MINOR_VERSION
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import llm
+from homeassistant.setup import async_setup_component
 
 SECRET_VALUE = "hunter2-the-secret"
 # From 2026.11, Home Assistant refuses an API that requires an admin before it runs.
@@ -80,6 +84,13 @@ async def apply_options(
     """Change the settings of a loaded entry, as saving the settings menu does."""
     hass.config_entries.async_update_entry(entry, options=options)
     assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def async_setup_logbook(hass: HomeAssistant) -> None:
+    """Have the logbook, without the frontend that only shows it."""
+    mock_component(hass, "frontend")
+    assert await async_setup_component(hass, "logbook", {})
     await hass.async_block_till_done()
 
 

@@ -94,6 +94,12 @@ class WriteJournal:
             reason,
         )
 
+    def context_ids(self) -> frozenset[str]:
+        """Return the contexts that changes ran in, as far back as the journal goes."""
+        return frozenset(
+            record["context_id"] for record in self._records if "context_id" in record
+        )
+
     def recent(self) -> list[dict[str, Any]]:
         """Return the recent changes without identifying the user."""
         return [

@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.helpers import llm
 
+from .action_history import GetActionHistoryTool
 from .definitions import GetDefinitionTool, ListDefinitionsTool
 from .entities import GetEntityTool, ListEntitiesTool
 from .extended_history import GetExtendedHistoryTool
@@ -70,6 +71,10 @@ _TASKS = (
     _Task(
         "See how a value changed",
         (GetEntityHistoryTool, GetExtendedHistoryTool),
+    ),
+    _Task(
+        "Find out what called an action, such as what turned a light on",
+        (GetActionHistoryTool,),
     ),
     _Task(
         "Call a service",

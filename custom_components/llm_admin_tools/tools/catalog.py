@@ -1,5 +1,6 @@
 """The tools that get_capabilities reports on, which is why it is not one of them."""
 
+from .action_history import GetActionHistoryTool
 from .base import BaseTool
 from .dashboards import GetDashboardTool, ListDashboardsTool
 from .definitions import GetDefinitionTool, ListDefinitionsTool
@@ -45,6 +46,7 @@ READ_TOOL_CLASSES: tuple[type[BaseTool], ...] = (
     ListDefinitionsTool,
     GetDefinitionTool,
     GetAutomationTraceTool,
+    GetActionHistoryTool,
     FindReferencesTool,
     ListHelpersTool,
     ListDashboardsTool,

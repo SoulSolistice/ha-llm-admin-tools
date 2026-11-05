@@ -16,7 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from homeassistant.setup import async_setup_component
 
-from .conftest import CallTool, apply_options
+from .conftest import HA_2026_11, CallTool, apply_options, async_setup_logbook
 
 _REPORT = "get_capabilities"
 _SKILL = Path(__file__).parents[1] / "skills" / "ha-llm-admin-tools" / "SKILL.md"
@@ -35,6 +35,7 @@ async def test_says_what_does_not_work_and_why(call_tool: CallTool) -> None:
     """A source that is not running takes the tools for it out of what is offered."""
     tools = (await _report(call_tool))["tools"]
     assert set(tools["unavailable"]) == {
+        "get_action_history",
         "get_entity_history",
         "get_extended_history",
         "get_system_log",
@@ -55,10 +56,14 @@ async def test_what_runs_is_offered(
     assert await async_setup_component(hass, "system_log", {})
     await hass.async_block_till_done()
     hass.data[KEY_DATA_LOGGING] = str(tmp_path / "home-assistant.log")
+    if HA_2026_11:
+        await async_setup_logbook(hass)
     report = await _report(call_tool)
-    assert report["tools"]["unavailable"] == {}
+    before_2026_11 = set() if HA_2026_11 else {"get_action_history"}
+    assert set(report["tools"]["unavailable"]) == before_2026_11
     assert report["tools"]["limited"] == {}
-    assert len(report["tools"]["offered"]) == len(TOOL_CLASSES)
+    offered = report["tools"]["offered"]
+    assert len(offered) == len(TOOL_CLASSES) - len(before_2026_11)
     assert [offer["tool"] for offer in report["on_request"]] == [
         "get_extended_history",
         "get_full_log",

@@ -172,9 +172,10 @@ which ones or how many.
 
 While anything is hidden, a definition can only name entities that exist, because accepting
 an unknown name would reveal the difference between a missing entity and a hidden one. In
-that case `get_automation_trace`, and `find_references` without a target, also refuse: a
-trace holds the values of everything a run looked at, and a hidden entity would have to be
-reported as missing, which could lead someone to take apart an automation that works.
+that case `get_automation_trace`, `get_action_history`, and `find_references` without a
+target, also refuse: a trace holds the values of everything a run looked at, an action call
+names what it acted on, and a hidden entity would have to be reported as missing, which
+could lead someone to take apart an automation that works.
 `get_health_report` leaves those parts out and says so.
 
 ### Reads beyond the usual limits
@@ -353,6 +354,7 @@ These cover what Home Assistant's API has no tool for:
 | Tools | What they add |
 | --- | --- |
 | `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
+| `get_action_history` | From 2026.11, which actions were called through any route, with their data, whether a user called them, and what they ran in, such as an automation. It marks those called with these tools. |
 | `list_definitions`, `get_definition`, `write_definition` | Read and write automations, scripts and scenes, within the [checks above](#what-can-be-changed) |
 | `list_repairs`, in `get_health_report` too | What is listed as broken, the most severe first |
 | `update_entity`, `update_device`, `write_registry_item` | Tidy up names, areas, floors, labels and categories |
@@ -426,8 +428,8 @@ anything here; it would simply use another door:
 
 What happens through these routes does not show up in [recent activity](#recent-activity)
 either. From 2026.11, Home Assistant's own **Action history**, under **Settings > Tools**,
-lists every action called through any of them, with the user and the context. Reading
-leaves no trace there. To narrow them:
+lists every action called through any of them, with the user and the context, and
+`get_action_history` lets a client read it. Reading leaves no trace there. To narrow them:
 
 1. **Connect your client to `/api/mcp/llm_admin_tools`.** It then offers the model only these
    tools. The address decides what the model is offered, not what the token allows.
@@ -575,6 +577,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `list_definitions` | Automations, scripts or scenes |
 | `get_definition` | The configuration of one automation, script or scene |
 | `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
+| `get_action_history` | From 2026.11, which actions were called in up to about 7 days, by whom or what |
 | `find_references` | What names an entity or device, or an entity that does not exist |
 | `list_helpers` | Counters, input helpers, persons, schedules, tags, timers and zones |
 | `list_dashboards` | Dashboards other than the default |

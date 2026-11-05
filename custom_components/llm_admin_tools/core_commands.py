@@ -66,6 +66,7 @@ ALLOWED_COMMANDS = frozenset(
         "lovelace/dashboards/delete",
         "lovelace/dashboards/list",
         "lovelace/dashboards/update",
+        "logbook/get_action_calls",
         "trace/get",
         "trace/list",
     }
