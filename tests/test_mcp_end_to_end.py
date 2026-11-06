@@ -277,6 +277,10 @@ async def test_changes_through_mcp(
         tool = tools[tool_class.name]
         assert not tool["annotations"]["readOnlyHint"]
         assert tool["annotations"]["destructiveHint"]
+        # Only a service call can reach outside Home Assistant.
+        assert tool["annotations"]["openWorldHint"] is (
+            tool_class.name == "call_service"
+        )
         assert "reason" in tool["inputSchema"]["required"]
         assert "dry_run" in tool["inputSchema"]["properties"]
 

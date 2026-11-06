@@ -16,7 +16,7 @@ from ..errors import invalid_input
 from ..policy.definition_guard import check_service_data
 from ..policy.limits import MAX_SERVICE_ENTITIES
 from .params import TEXT, require_valid_entity_id
-from .write_base import WRITE_PARAMS, WritePlan, WriteTool
+from .write_base import WRITE_ANNOTATIONS, WRITE_PARAMS, WritePlan, WriteTool
 
 
 class CallServiceTool(WriteTool):
@@ -31,6 +31,14 @@ class CallServiceTool(WriteTool):
         "false, the service is still running and may yet take effect."
     )
     subjects = ("services",)
+    # What a service does is up to it, and many reach outside: a notification, speech,
+    # a cloud service.
+    annotations = llm.ToolAnnotations(
+        read_only=WRITE_ANNOTATIONS.read_only,
+        destructive=WRITE_ANNOTATIONS.destructive,
+        idempotent=WRITE_ANNOTATIONS.idempotent,
+        open_world=True,
+    )
     parameters = probatio.Schema(
         {
             probatio.Required("domain", description="For example light."): TEXT,

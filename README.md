@@ -307,7 +307,9 @@ their schema, permission checks and logic. The list of commands that can be run 
 Every tool call takes the same path through `tools/base.py`, and no tool can skip it: the
 admin check, validation against the tool's schema with bounds on every value, redaction, a
 size limit on the result (which fails rather than truncating), and a record of the call.
-Read tools cannot change anything, and are marked read-only for the client.
+Read tools cannot change anything, and are marked read-only for the client. Tools that
+change things are marked as destructive, and `call_service` also as one that can reach
+outside Home Assistant, as a notification does.
 
 Errors tell a client no more than it needs. Why a call was refused, or what Home Assistant
 answered, is passed on with credentials removed. Any other exception is reported by its type
