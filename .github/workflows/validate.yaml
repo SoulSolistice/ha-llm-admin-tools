@@ -3,6 +3,11 @@ name: Validate
 on:
   push:
   pull_request:
+  # hassfest follows the requirements of the newest Home Assistant, beta included, so
+  # this says when a release would no longer accept the integration, without a push.
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
