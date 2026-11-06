@@ -274,7 +274,8 @@ regardless of this setting.
    so `dry_run` reports what would happen and gives the same answer as the real call. Only
    problems that appear while the change runs can still make it fail, such as an entity ID
    already being taken.
-4. **Changes are limited** to 60 per minute, which caps a runaway loop at that rate.
+4. **Changes are limited** to 60 per minute, and all tool calls to 300, which caps a
+   runaway loop at that rate.
 5. **Changes are recorded** in a separate journal, so reads cannot push them out. The record
    and the result hold the ID of the context the change ran in, by which the logbook, and
    from 2026.11 Action history, know what it called.

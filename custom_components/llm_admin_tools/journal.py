@@ -1,7 +1,6 @@
 """Record of what clients changed, kept apart from the calls that only read."""
 
 from collections import deque
-import time
 from typing import Any
 
 from homeassistant.core import HomeAssistant, callback
@@ -9,12 +8,12 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, LOGGER
-from .errors import invalid_input
 from .policy.limits import (
     MAX_JOURNAL_RECORDS,
     MAX_WRITES_PER_MINUTE,
-    WRITE_RATE_WINDOW_SECONDS,
+    RATE_WINDOW_SECONDS,
 )
+from .policy.rate import RateLimit
 
 _STORAGE_KEY = f"{DOMAIN}.write_journal"
 _STORAGE_VERSION = 1
@@ -30,7 +29,9 @@ class WriteJournal:
             hass, _STORAGE_VERSION, _STORAGE_KEY
         )
         self._records: deque[dict[str, Any]] = deque(maxlen=MAX_JOURNAL_RECORDS)
-        self._recent: deque[float] = deque()
+        self._rate = RateLimit(
+            MAX_WRITES_PER_MINUTE, RATE_WINDOW_SECONDS, "write_rate_limited"
+        )
 
     async def async_load(self) -> None:
         """Load what was recorded before the last restart."""
@@ -51,12 +52,7 @@ class WriteJournal:
     @callback
     def require_capacity(self) -> None:
         """Raise if clients are changing too much too fast; a runaway loop would."""
-        now = time.monotonic()
-        while self._recent and now - self._recent[0] > WRITE_RATE_WINDOW_SECONDS:
-            self._recent.popleft()
-        if len(self._recent) >= MAX_WRITES_PER_MINUTE:
-            raise invalid_input("write_rate_limited")
-        self._recent.append(now)
+        self._rate.require_capacity()
 
     @callback
     def record(

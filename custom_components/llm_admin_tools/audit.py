@@ -4,11 +4,13 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, LOGGER
+from .policy.limits import MAX_CALLS_PER_MINUTE, RATE_WINDOW_SECONDS
+from .policy.rate import RateLimit
 
 _MAX_RECORDS = 100
 _STORAGE_KEY = f"{DOMAIN}.audit_log"
@@ -39,6 +41,14 @@ class AuditLog:
             hass, _STORAGE_VERSION, _STORAGE_KEY
         )
         self._records: deque[AuditRecord] = deque(maxlen=_MAX_RECORDS)
+        self._rate = RateLimit(
+            MAX_CALLS_PER_MINUTE, RATE_WINDOW_SECONDS, "call_rate_limited"
+        )
+
+    @callback
+    def require_capacity(self) -> None:
+        """Raise if clients call tools too fast; a runaway loop would."""
+        self._rate.require_capacity()
 
     async def async_load(self) -> None:
         """Load what was recorded before the last reload or restart."""

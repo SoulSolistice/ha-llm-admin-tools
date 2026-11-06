@@ -118,6 +118,7 @@ class BaseTool(llm.Tool):
         try:
             await async_require_admin(hass, llm_context)
             self._require_current(hass)
+            self._runtime.audit.require_capacity()
             # Home Assistant passes the arguments on without validating them.
             args = self.parameters(tool_input.tool_args)
             reason = self._stated_reason(args)

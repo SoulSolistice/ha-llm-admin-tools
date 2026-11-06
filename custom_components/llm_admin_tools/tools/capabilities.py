@@ -8,6 +8,7 @@ from homeassistant.util import dt as dt_util
 
 from ..policy.limits import (
     MAX_ATTRIBUTE_CHARACTERS,
+    MAX_CALLS_PER_MINUTE,
     MAX_HEALTH_ITEMS,
     MAX_HISTORY_ENTITIES,
     MAX_HISTORY_POINTS_PER_ENTITY,
@@ -126,6 +127,7 @@ class GetCapabilitiesTool(ReadOnlyTool):
             "withheld_values": withheld_values(settings),
             "data_sources": data_sources(hass),
             "limits": {
+                "calls_per_minute": MAX_CALLS_PER_MINUTE,
                 "page_size": MAX_PAGE_SIZE,
                 "result_characters": MAX_RESULT_CHARACTERS,
                 "attribute_characters_before_shortening": MAX_ATTRIBUTE_CHARACTERS,

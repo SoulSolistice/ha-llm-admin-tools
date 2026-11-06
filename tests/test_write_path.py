@@ -11,13 +11,20 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.llm_admin_tools.const import DOMAIN
 from custom_components.llm_admin_tools.core_commands import async_run_command
-from custom_components.llm_admin_tools.policy.limits import MAX_WRITES_PER_MINUTE
+from custom_components.llm_admin_tools.policy.limits import (
+    MAX_CALLS_PER_MINUTE,
+    MAX_WRITES_PER_MINUTE,
+)
 from custom_components.llm_admin_tools.tools import build_tools
 from custom_components.llm_admin_tools.tools.base import BaseTool
 from custom_components.llm_admin_tools.tools.catalog import WRITE_TOOL_CLASSES
 from homeassistant.auth.models import User
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, Unauthorized
+from homeassistant.exceptions import (
+    HomeAssistantError,
+    ServiceValidationError,
+    Unauthorized,
+)
 from homeassistant.helpers import llm
 from homeassistant.setup import async_setup_component
 
@@ -283,7 +290,9 @@ async def test_changes_are_limited_in_rate(
     """A loop in a client stops, and a minute later it can go on."""
     await _allow_services(hass, init_integration, "light")
     async_mock_service(hass, "light", "turn_on")
-    with patch("custom_components.llm_admin_tools.journal.time.monotonic") as monotonic:
+    with patch(
+        "custom_components.llm_admin_tools.policy.rate.time.monotonic"
+    ) as monotonic:
         monotonic.return_value = 1000
         for _ in range(MAX_WRITES_PER_MINUTE):
             await call_tool("call_service", **_LIGHT_ON)
@@ -292,6 +301,27 @@ async def test_changes_are_limited_in_rate(
         assert getattr(err.value, "translation_key", None) == "write_rate_limited"
         monotonic.return_value = 1061
         await call_tool("call_service", **_LIGHT_ON)
+
+
+async def test_all_calls_are_limited_in_rate(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """Reads too, and what was refused for it does not count."""
+    with patch(
+        "custom_components.llm_admin_tools.policy.rate.time.monotonic"
+    ) as monotonic:
+        monotonic.return_value = 1000
+        for _ in range(MAX_CALLS_PER_MINUTE):
+            await call_tool("list_areas")
+        for _ in range(2):
+            with pytest.raises(ServiceValidationError) as err:
+                await call_tool("list_areas")
+            assert err.value.translation_key == "call_rate_limited"
+        assert (
+            init_integration.runtime_data.audit.as_diagnostics()[-1]["success"] is False
+        )
+        monotonic.return_value = 1061
+        await call_tool("list_areas")
 
 
 async def test_only_listed_commands_can_be_run(

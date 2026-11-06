@@ -41,7 +41,9 @@ SERVICE_CALL_TIMEOUT = 30
 CORE_COMMAND_TIMEOUT = 30
 MAX_JOURNAL_RECORDS = 200
 MAX_WRITES_PER_MINUTE = 60
-WRITE_RATE_WINDOW_SECONDS = 60
+# Every call counts, reads too: a loop of reads can keep Home Assistant busy as well.
+MAX_CALLS_PER_MINUTE = 300
+RATE_WINDOW_SECONDS = 60
 
 # A client can ask for far more history, if it says why.
 MIN_REASON_LENGTH = 10

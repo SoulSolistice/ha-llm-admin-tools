@@ -197,6 +197,9 @@
     "unavailable_while_hidden": {
       "message": "{what} is not available while anything is hidden, as what it reads could show what is hidden."
     },
+    "call_rate_limited": {
+      "message": "Too many tool calls in a short time. Wait a minute, and check that this is intended."
+    },
     "write_rate_limited": {
       "message": "Too many changes in a short time. Wait a minute, and check that this is intended."
     },
