@@ -441,7 +441,10 @@ lists every action called through any of them, with the user and the context, an
    under [**Settings > System > AI**](https://my.home-assistant.io/redirect/config_ai/) from
    2026.11, turn off **Expose all AI tools** and select what you need. Turn on **Require an
    administrator account**, which a setup from before 2026.11 has off, and **Read-only** if
-   a client should only look. All of these only narrow `/api/mcp`. To remove an LLM API
+   a client should only look. The server does not tell this integration that it is
+   read-only, so the capability report still lists the changes you allowed here, and tells a
+   client without the tools for them that its server only offers those that read. All of
+   these only narrow `/api/mcp`. To remove an LLM API
    completely, disable the integration that provides it, where possible. Leave the debug
    console out of `configuration.yaml` unless you are using it.
 4. **If you keep Assist, keep its list in sync.** Anything you hide or protect here should

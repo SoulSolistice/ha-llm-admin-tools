@@ -13,8 +13,9 @@ from .tools import build_tools
 
 _READ_ONLY = "They only read and cannot change anything."
 _CAN_WRITE = (
-    "The owner has allowed some changes. Each states what it may change, needs a "
-    "reason, and has a dry_run to check it first. Only change what the user asked for."
+    "The owner has allowed some changes. Each tool for them states what it may change, "
+    "needs a reason, and has a dry_run to check it first. Only change what the user "
+    "asked for. Without such tools, the server you use offers only those that read."
 )
 _API_PROMPT = (
     "Tools to inspect this Home Assistant instance: what is wrong, entities, history, "

@@ -255,6 +255,38 @@ async def test_merged_endpoint_gives_non_admin_none_of_our_tools(
     assert not [name for name in names if "get_entity" in name]
 
 
+@pytest.mark.skipif(not HA_2026_11, reason="The option is new in 2026.11")
+@pytest.mark.usefixtures("mcp_server")
+async def test_read_only_server_is_explained(
+    hass: HomeAssistant,
+    hass_client: ClientSessionGenerator,
+    init_integration: MockConfigEntry,
+) -> None:
+    """The server takes the change tools away, so the report says what that means."""
+    await apply_options(
+        hass, init_integration, write_subjects=["services"], allowed_services=["light"]
+    )
+    (server,) = hass.config_entries.async_entries("mcp_server")
+    hass.config_entries.async_update_entry(
+        server, data={**server.data, "read_only": True}
+    )
+    assert await hass.config_entries.async_reload(server.entry_id)
+    await hass.async_block_till_done()
+    client = await hass_client()
+
+    _status, body = await _rpc(client, "/api/mcp", "tools/list")
+    assert body is not None
+    names = {tool["name"] for tool in body["result"]["tools"]}
+    assert "call_service" not in names
+    _status, body = await _rpc(
+        client, "/api/mcp", "tools/call", {"name": "get_capabilities", "arguments": {}}
+    )
+    assert body is not None
+    report = body["result"]["content"][0]["text"]
+    assert "call_service" in report
+    assert "Read-only" in report
+
+
 @pytest.mark.usefixtures("mcp_server")
 async def test_changes_through_mcp(
     hass: HomeAssistant,

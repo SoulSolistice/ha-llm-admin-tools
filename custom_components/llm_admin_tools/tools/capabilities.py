@@ -36,7 +36,11 @@ _REPOSITORY = "https://github.com/SoulSolistice/ha-llm-admin-tools"
 _ISSUES = f"{_REPOSITORY}/issues"
 _PRIVATE_REPORT = f"{_REPOSITORY}/security/advisories/new"
 _ONLY_READING = "The tools of this integration only read."
-_CAN_WRITE = "The tools of this integration can change what writes describes."
+_CAN_WRITE = (
+    "The tools of this integration can change what writes describes. If you were not "
+    "given the tools it names, the server you use offers only those that read, such "
+    "as the MCP server with Read-only on: do not look for another way to change it."
+)
 _NOTES = (
     "Neither this report nor its restrictions cover other tools your client offers, "
     "which may change things.",
