@@ -22,7 +22,7 @@ from homeassistant.helpers import (
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
-from .conftest import HA_2026_11, CallTool
+from .conftest import HA_2026_11, CallTool, apply_options
 
 
 async def test_get_system_info(hass: HomeAssistant, call_tool: CallTool) -> None:
@@ -418,6 +418,55 @@ async def test_definitions(hass: HomeAssistant, call_tool: CallTool) -> None:
 
     script = await call_tool("get_definition", kind="script", entity_id="script.s1")
     assert script.data["config"]["alias"] == "Warm"
+
+
+async def test_definition_names_entities_given_by_registry_id(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
+    call_tool: CallTool,
+) -> None:
+    """A device action names its entity by the ID of its registry entry."""
+    pump = entity_registry.async_get_or_create("switch", "test", "pump")
+    secret = entity_registry.async_get_or_create("switch", "test", "secret")
+    assert await async_setup_component(
+        hass,
+        "automation",
+        {
+            "automation": {
+                "id": "a1",
+                "alias": "Pump",
+                "trigger": {"platform": "state", "entity_id": [pump.id, "light.a"]},
+                "condition": {
+                    "condition": "state",
+                    "entity_id": secret.id,
+                    "state": "on",
+                },
+                "action": {"delay": "00:00:01"},
+            }
+        },
+    )
+    await hass.async_block_till_done()
+
+    async def registry_ids() -> dict[str, str] | None:
+        read = await call_tool(
+            "get_definition", kind="automation", entity_id="automation.pump"
+        )
+        # The configuration stays as it is, to be written back.
+        assert read.data["config"]["condition"]["entity_id"] == secret.id
+        return read.data.get("registry_ids")
+
+    assert await registry_ids() == {
+        pump.id: pump.entity_id,
+        secret.id: secret.entity_id,
+    }
+    # What is hidden is not named.
+    await apply_options(hass, init_integration, excluded_entities=[secret.entity_id])
+    assert await registry_ids() == {pump.id: pump.entity_id}
+    await apply_options(
+        hass, init_integration, excluded_entities=[secret.entity_id, pump.entity_id]
+    )
+    assert await registry_ids() is None
 
 
 async def test_definitions_when_component_not_loaded(call_tool: CallTool) -> None:

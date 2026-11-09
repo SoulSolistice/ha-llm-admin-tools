@@ -1,8 +1,11 @@
 """Read how automations, scripts and scenes are defined."""
 
+from collections.abc import Iterator
 from typing import Any
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.core import HomeAssistant, callback, valid_entity_id
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import DATA_INSTANCES, EntityComponent
 
 from ..errors import invalid_input, read_failed
@@ -86,4 +89,46 @@ def get_definition(
         raise invalid_input("entity_not_found", entity_id=entity_id)
     if (config := _config_of(kind, entity)) is None:
         raise read_failed("definition_unavailable", entity_id=entity_id)
-    return {"entity_id": entity_id, "kind": kind, "config": config}
+    registry_ids = _registry_ids(hass, policy, config)
+    return {
+        "entity_id": entity_id,
+        "kind": kind,
+        "config": config,
+        **({"registry_ids": registry_ids} if registry_ids else {}),
+    }
+
+
+def _named_entities(value: Any) -> Iterator[str]:
+    """Return each text under entity_id, at any depth of a configuration."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == ATTR_ENTITY_ID:
+                yield from (
+                    name
+                    for name in (item if isinstance(item, list) else [item])
+                    if isinstance(name, str)
+                )
+            else:
+                yield from _named_entities(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _named_entities(item)
+
+
+@callback
+def _registry_ids(
+    hass: HomeAssistant, policy: ExposurePolicy, config: Any
+) -> dict[str, str]:
+    """Return the entity ID of each entity that is named by its registry entry.
+
+    Device triggers, conditions and actions do that, which says nothing to a reader.
+    The configuration stays as it is, so that it can be written back.
+    """
+    registry = er.async_get(hass)
+    found = {}
+    for name in _named_entities(config):
+        if valid_entity_id(name) or (entry := registry.async_get(name)) is None:
+            continue
+        if policy.entity_allowed(entry.entity_id):
+            found[name] = entry.entity_id
+    return found

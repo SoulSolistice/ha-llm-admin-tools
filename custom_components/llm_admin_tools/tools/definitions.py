@@ -46,7 +46,9 @@ class GetDefinitionTool(ReadOnlyTool):
     description = (
         "Return the configuration of one automation, script or scene. To find those "
         "that use an entity or device, use find_references instead of reading each. "
-        "To find out why one did or did not run, use get_automation_trace. "
+        "To find out why one did or did not run, use get_automation_trace. A device "
+        "trigger, condition or action names an entity by the ID of its registry "
+        "entry, and registry_ids gives the entity ID for each. "
         f"{DATA_NOTICE}"
     )
     parameters = probatio.Schema(

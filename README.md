@@ -581,7 +581,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `list_registry_items` | Floors, labels, or the categories of a scope |
 | `list_integrations` | Config entries with state and failure reason |
 | `list_definitions` | Automations, scripts or scenes |
-| `get_definition` | The configuration of one automation, script or scene |
+| `get_definition` | The configuration of one automation, script or scene, with the entity ID of each entity a device trigger, condition or action names by its registry ID |
 | `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
 | `get_action_history` | From 2026.11, which actions were called in up to about 7 days, by whom or what |
 | `find_references` | What names an entity or device, or an entity that does not exist |
