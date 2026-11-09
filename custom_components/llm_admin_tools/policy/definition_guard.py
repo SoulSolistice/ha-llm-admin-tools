@@ -98,6 +98,23 @@ class _Guard:
         """Initialize the walk; only definitions have their templates rendered."""
         self._policy = policy
         self._templates_run = templates_run
+        # All of them are told at once, so the owner can allow them in one go.
+        self.refused_services: set[str] = set()
+
+    def raise_if_refused(self) -> None:
+        """Raise naming every service the walk found that is not allowed."""
+        if self.refused_services:
+            raise invalid_input(
+                "services_not_allowed",
+                services=", ".join(sorted(self.refused_services)),
+            )
+
+    def _require_service(self, domain: str, service: str) -> bool:
+        """Return if a service is allowed, noting it otherwise."""
+        if self._policy.service_allowed(domain, service):
+            return True
+        self.refused_services.add(f"{domain}.{service}")
+        return False
 
     def walk(self, node: Any, part: _Part) -> None:
         """Check a value and everything in it."""
@@ -157,12 +174,12 @@ class _Guard:
             if isinstance(service := node.get(key), str):
                 self.check_service(service)
         if isinstance(node.get("event"), str):
-            self._policy.require_service("event", "fire")
+            self._require_service("event", "fire")
         if isinstance(scene := node.get("scene"), str):
-            self._policy.require_service("scene", "turn_on")
+            self._require_service("scene", "turn_on")
             self._check_entity_field(scene, _Part.ACTION)
         if "device_id" in node and "domain" in node and "type" in node:
-            self._policy.require_service(
+            self._require_service(
                 str(node["domain"]).lower(), str(node["type"]).lower()
             )
 
@@ -171,8 +188,8 @@ class _Guard:
         if is_template_string(service):
             raise invalid_input("definition_part_refused")
         domain, _, name = service.strip().lower().partition(".")
-        self._policy.require_service(domain, name)
-        self._policy.require_service_target(domain, name)
+        if self._require_service(domain, name):
+            self._policy.require_service_target(domain, name)
 
     def _check_targets(self, node: Mapping[str, Any], part: _Part) -> None:
         """Check what is named as the target of something, directly or as a group."""
@@ -242,6 +259,10 @@ class _DashboardGuard:
         self._policy = policy
         self._actions = _Guard(policy, templates_run=True)
 
+    def raise_if_refused(self) -> None:
+        """Raise naming every service a button would call that is not allowed."""
+        self._actions.raise_if_refused()
+
     def walk(self, node: Any) -> None:
         """Check a value and everything in it."""
         if isinstance(node, list):
@@ -279,13 +300,17 @@ class _DashboardGuard:
 @callback
 def check_dashboard(policy: WritePolicy, config: Mapping[str, Any]) -> None:
     """Raise unless a dashboard stays within what is allowed."""
-    _DashboardGuard(policy).walk(config)
+    guard = _DashboardGuard(policy)
+    guard.walk(config)
+    guard.raise_if_refused()
 
 
 @callback
 def check_definition(policy: WritePolicy, config: Mapping[str, Any]) -> None:
     """Raise unless an automation, script or scene stays within what is allowed."""
-    _Guard(policy, templates_run=True).walk(config, _Part.ACTION)
+    guard = _Guard(policy, templates_run=True)
+    guard.walk(config, _Part.ACTION)
+    guard.raise_if_refused()
 
 
 @callback
@@ -296,4 +321,6 @@ def check_service_data(policy: WritePolicy, data: Mapping[str, Any]) -> None:
     """
     if not _TARGET_KEYS.isdisjoint(data):
         raise invalid_input("target_in_service_data")
-    _Guard(policy, templates_run=False).walk(data, _Part.DATA)
+    guard = _Guard(policy, templates_run=False)
+    guard.walk(data, _Part.DATA)
+    guard.raise_if_refused()

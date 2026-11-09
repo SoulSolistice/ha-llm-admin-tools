@@ -782,8 +782,8 @@ async def test_dashboard_templates_only_if_allowed_and_nothing_is_hidden(
             _button(action="perform-action", perform_action="{{ 'light.turn_on' }}"),
             "definition_part_refused",
         ),
-        (_button(action="call-service", service="lock.unlock"), "service_not_allowed"),
-        (_button(perform_action="lock.unlock"), "service_not_allowed"),
+        (_button(action="call-service", service="lock.unlock"), "services_not_allowed"),
+        (_button(perform_action="lock.unlock"), "services_not_allowed"),
         (
             _button(
                 perform_action="light.turn_on", target={"entity_id": "light.guarded"}

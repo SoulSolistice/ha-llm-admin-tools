@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util.yaml import load_yaml
@@ -320,14 +321,13 @@ async def test_protected_definition_cannot_be_changed(
         {"repeat": {"count": 1, "sequence": [_service("switch.turn_on")]}},
         {"parallel": [_service("switch.turn_on")]},
         {"sequence": [_service("switch.turn_on")]},
-        {"device_id": "x", "domain": "switch", "type": "turn_on"},
     ],
 )
 async def test_actions_must_be_allowed_however_nested(
     call_tool: CallTool, action: dict[str, Any]
 ) -> None:
     """An automation may do no more than its author."""
-    assert await _refusal(call_tool, _automation(action)) == "service_not_allowed"
+    assert await _refusal(call_tool, _automation(action)) == "services_not_allowed"
 
 
 @pytest.mark.usefixtures("definitions")
@@ -348,6 +348,40 @@ async def test_what_cannot_be_checked_is_refused(
 
 
 @pytest.mark.usefixtures("definitions")
+async def test_device_actions_must_be_allowed(
+    hass: HomeAssistant, call_tool: CallTool, device_registry: dr.DeviceRegistry
+) -> None:
+    """A device action does what a service of its domain does."""
+    entry = MockConfigEntry(domain="test")
+    entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("test", "switch")}
+    )
+    action = {"device_id": device.id, "domain": "switch", "type": "turn_on"}
+    assert await _refusal(call_tool, _automation(action)) == "services_not_allowed"
+
+
+@pytest.mark.usefixtures("definitions")
+async def test_all_refused_services_are_named_at_once(call_tool: CallTool) -> None:
+    """The owner can allow them in one go, rather than one after the other."""
+    config = _automation(
+        _service("select.select_option"),
+        _service("light.turn_on"),
+        {
+            "if": [],
+            "then": [_service("siren.turn_on"), _service("select.select_option")],
+        },
+        {"event": "done"},
+    )
+    with pytest.raises(ServiceValidationError) as err:
+        await _write(call_tool, "automation", "create", config=config, dry_run=True)
+    assert err.value.translation_key == "services_not_allowed"
+    assert err.value.translation_placeholders == {
+        "services": "event.fire, select.select_option, siren.turn_on"
+    }
+
+
+@pytest.mark.usefixtures("definitions")
 async def test_old_key_names_are_checked_too(call_tool: CallTool) -> None:
     """Automations also take action and trigger, in their older spelling."""
     config = {
@@ -355,14 +389,14 @@ async def test_old_key_names_are_checked_too(call_tool: CallTool) -> None:
         "trigger": _TRIGGER,
         "action": [{"service": "switch.turn_on"}],
     }
-    assert await _refusal(call_tool, config) == "service_not_allowed"
+    assert await _refusal(call_tool, config) == "services_not_allowed"
 
 
 @pytest.mark.usefixtures("definitions")
 async def test_scripts_are_checked_too(call_tool: CallTool) -> None:
     """A script does as much as an automation."""
     config = {"sequence": [_service("switch.turn_on")]}
-    assert await _refusal(call_tool, config, "script") == "service_not_allowed"
+    assert await _refusal(call_tool, config, "script") == "services_not_allowed"
 
 
 @pytest.mark.usefixtures("definitions")

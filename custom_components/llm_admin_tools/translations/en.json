@@ -158,6 +158,9 @@
     "service_not_allowed": {
       "message": "The owner has not allowed {service}. get_capabilities lists what is allowed."
     },
+    "services_not_allowed": {
+      "message": "The owner has not allowed these services: {services}. Ask the owner to allow all of them, or leave them out. get_capabilities lists what is allowed."
+    },
     "service_not_found": {
       "message": "Service {service} does not exist."
     },
