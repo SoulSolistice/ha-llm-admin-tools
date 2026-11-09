@@ -14,6 +14,8 @@ ACTION_CALLS_COMMAND = "logbook/get_action_calls"
 _CONTEXT = "context_"
 # Whether a user called it is told apart from what else did, and the user is not named.
 _NOT_A_CAUSE = frozenset({"context_id", "context_user_id"})
+# Core gives an automation's trigger twice, once as a sentence and once as the source.
+_SAID_BY_SOURCE = "message"
 
 
 @callback
@@ -33,6 +35,8 @@ def _call(entry: dict[str, Any], own_contexts: frozenset[str]) -> dict[str, Any]
         for key, value in entry.items()
         if key.startswith(_CONTEXT) and key not in _NOT_A_CAUSE
     }
+    if "source" in caused_by:
+        caused_by.pop(_SAID_BY_SOURCE, None)
     context_id = entry.get("context_id")
     return without_empty_fields(
         {

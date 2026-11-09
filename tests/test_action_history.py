@@ -3,6 +3,7 @@
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import probatio
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -12,6 +13,7 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
 )
 
+from custom_components.llm_admin_tools.policy.limits import MAX_ACTION_CALLS_PAGE_SIZE
 from homeassistant.auth.models import User
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -165,6 +167,8 @@ async def test_reads_what_core_returns(
             "context_user_id": "abc",
             "context_entity_id": "automation.night",
             "context_event_type": "automation_triggered",
+            "context_message": "triggered by time pattern",
+            "context_source": "time pattern",
         },
     ]
     run = AsyncMock(return_value=entries)
@@ -188,9 +192,11 @@ async def test_reads_what_core_returns(
         "action": "switch.turn_off",
         "data": {"entity_id": "switch.b"},
         "by_a_user": True,
+        # The source says what the message does, in fewer words.
         "caused_by": {
             "entity_id": "automation.night",
             "event_type": "automation_triggered",
+            "source": "time pattern",
         },
         "context_id": "01NEWER",
     }
@@ -204,6 +210,13 @@ async def test_reads_what_core_returns(
         "logbook/get_action_calls",
         {"start_time": _START, "end_time": _END},
     )
+
+
+@pytest.mark.usefixtures("init_integration")
+async def test_a_page_stays_within_a_result(call_tool: CallTool) -> None:
+    """Each call says what caused it, so 500 of them nearly fill a result."""
+    with pytest.raises(probatio.Invalid):
+        await call_tool(_TOOL, limit=MAX_ACTION_CALLS_PAGE_SIZE + 1)
 
 
 @pytest.mark.usefixtures("init_integration")

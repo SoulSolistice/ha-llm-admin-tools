@@ -4,6 +4,8 @@ from datetime import timedelta
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 500
+# An action call says what caused it, so a page of 500 nearly fills a result.
+MAX_ACTION_CALLS_PAGE_SIZE = 200
 MAX_TEXT_FILTER_LENGTH = 200
 
 MAX_ATTRIBUTE_CHARACTERS = 2000

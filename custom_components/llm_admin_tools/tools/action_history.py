@@ -14,11 +14,12 @@ from ..models import RuntimeData
 from ..policy.limits import (
     DEFAULT_HISTORY_WINDOW,
     HISTORY_WINDOW_SLACK,
+    MAX_ACTION_CALLS_PAGE_SIZE,
     MAX_HISTORY_WINDOW,
 )
 from ..queries.action_history import action_history_kept, async_action_calls
 from .base import READ_ONLY_ANNOTATIONS, BaseTool
-from .params import DATA_NOTICE, PAGING, TEXT, paginate, parse_time
+from .params import DATA_NOTICE, TEXT, paginate, paging, parse_time
 
 _HOURS = int(DEFAULT_HISTORY_WINDOW.total_seconds() // 3600)
 
@@ -52,7 +53,7 @@ class GetActionHistoryTool(BaseTool):
                 "action",
                 description="Only this action, such as light.turn_on, or domain.",
             ): TEXT,
-            **PAGING,
+            **paging(MAX_ACTION_CALLS_PAGE_SIZE),
         }
     )
 

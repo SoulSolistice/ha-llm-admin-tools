@@ -20,16 +20,22 @@ DATA_NOTICE = (
 
 TEXT = probatio.All(str, probatio.Length(min=1, max=MAX_TEXT_FILTER_LENGTH))
 
-PAGING: dict[Any, Any] = {
-    probatio.Optional(
-        "limit",
-        description="Maximum number of results to return.",
-        default=DEFAULT_PAGE_SIZE,
-    ): probatio.All(int, probatio.Range(min=1, max=MAX_PAGE_SIZE)),
-    probatio.Optional(
-        "offset", description="Number of results to skip.", default=0
-    ): probatio.All(int, probatio.Range(min=0)),
-}
+
+def paging(maximum: int = MAX_PAGE_SIZE) -> dict[Any, Any]:
+    """Return the fields for one page of results, of at most so many."""
+    return {
+        probatio.Optional(
+            "limit",
+            description="Maximum number of results to return.",
+            default=min(DEFAULT_PAGE_SIZE, maximum),
+        ): probatio.All(int, probatio.Range(min=1, max=maximum)),
+        probatio.Optional(
+            "offset", description="Number of results to skip.", default=0
+        ): probatio.All(int, probatio.Range(min=0)),
+    }
+
+
+PAGING = paging()
 
 
 def parse_time(value: str) -> datetime:
