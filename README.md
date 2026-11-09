@@ -357,7 +357,7 @@ These cover what Home Assistant's API has no tool for:
 | Tools | What they add |
 | --- | --- |
 | `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
-| `get_action_history` | From 2026.11, which actions were called through any route, with their data, whether a user called them, and what they ran in, such as an automation. It marks those called with these tools. |
+| `get_action_history` | From 2026.11, which actions were called through any route, with their data, whether a user called them, and what they ran in, such as an automation. It marks those called with these tools, and finds those on one entity or made by one automation. |
 | `list_definitions`, `get_definition`, `write_definition` | Read and write automations, scripts and scenes, within the [checks above](#what-can-be-changed) |
 | `list_repairs`, in `get_health_report` too | What is listed as broken, the most severe first |
 | `update_entity`, `update_device`, `write_registry_item` | Tidy up names, areas, floors, labels and categories |

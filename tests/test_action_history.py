@@ -154,7 +154,7 @@ async def test_reads_what_core_returns(
             "when": 1_800_000_000.0,
             "domain": "light",
             "service": "turn_on",
-            "service_data": {},
+            "service_data": {"entity_id": ["light.a", "light.ab"]},
             "context_id": "01OLDER",
         },
         {"when": 1_800_000_001.0, "entity_id": "light.a", "state": "on"},
@@ -183,6 +183,9 @@ async def test_reads_what_core_returns(
         assert _TOOL not in await _unavailable(call_tool)
         calls = await _calls(call_tool, start=_START, end=_END)
         only = await _calls(call_tool, action="light")
+        on_switch = await _calls(call_tool, entity_id="switch.b")
+        by_automation = await _calls(call_tool, entity_id="automation.night")
+        on_light = await _calls(call_tool, entity_id="light.a")
         await apply_options(hass, init_integration, excluded_domains=["camera"])
         assert "hidden" in (await _unavailable(call_tool))[_TOOL]
 
@@ -203,9 +206,14 @@ async def test_reads_what_core_returns(
     assert older == {
         "when": "2027-01-15T08:00:00+00:00",
         "action": "light.turn_on",
+        "data": {"entity_id": ["light.a", "light.ab"]},
         "context_id": "01OLDER",
     }
     assert [call["action"] for call in only["items"]] == ["light.turn_on"]
+    assert [call["action"] for call in on_switch["items"]] == ["switch.turn_off"]
+    assert by_automation["items"] == on_switch["items"]
+    # One entity on its own, and not part of another ID.
+    assert [call["action"] for call in on_light["items"]] == ["light.turn_on"]
     assert run.await_args_list[0].args[2:] == (
         "logbook/get_action_calls",
         {"start_time": _START, "end_time": _END},

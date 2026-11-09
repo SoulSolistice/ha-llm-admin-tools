@@ -36,9 +36,10 @@ class GetActionHistoryTool(BaseTool):
         f"default the last {_HOURS} hours. Each has its data, whether a user called "
         "it, and caused_by: what it ran in, such as an automation. "
         "through_these_tools marks the calls made with these tools, and context_id is "
-        "the one in the result of a change. Use this to find out what turned "
-        "something on or off. Home Assistant keeps this from 2026.11, for as long as "
-        "the recorder keeps history. A call can name anything, so this needs nothing "
+        "the one in the result of a change. Use entity_id to find out what turned "
+        "something on or off, or what an automation did. Home Assistant keeps this "
+        "from 2026.11, for as long as the recorder keeps history. A call can name "
+        "anything, so this needs nothing "
         f"to be hidden. {DATA_NOTICE}"
     )
     parameters = probatio.Schema(
@@ -52,6 +53,12 @@ class GetActionHistoryTool(BaseTool):
             probatio.Optional(
                 "action",
                 description="Only this action, such as light.turn_on, or domain.",
+            ): TEXT,
+            probatio.Optional(
+                "entity_id",
+                description=(
+                    "Only calls on this entity, or made by it, such as an automation."
+                ),
             ): TEXT,
             **paging(MAX_ACTION_CALLS_PAGE_SIZE),
         }
@@ -95,6 +102,7 @@ class GetActionHistoryTool(BaseTool):
             start,
             end,
             action=args.get("action"),
+            entity_id=args.get("entity_id"),
             own_contexts=self._runtime.journal.context_ids(),
         )
         return {"start": start, "end": end, **paginate(calls, args)}

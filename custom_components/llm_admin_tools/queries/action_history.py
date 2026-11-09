@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.websocket_api import const as websocket_const
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
@@ -26,6 +27,17 @@ def action_history_kept(hass: HomeAssistant) -> bool:
 
 def _name(entry: dict[str, Any]) -> str:
     return f"{entry['domain']}.{entry['service']}"
+
+
+def _involves(entry: dict[str, Any], entity_id: str) -> bool:
+    """Return if a call acted on an entity, or ran in one, such as an automation.
+
+    What a call names by area or device is not looked into: that would take what
+    is there now, which may not be what was there then.
+    """
+    named = (entry.get("service_data") or {}).get(ATTR_ENTITY_ID)
+    targets = [named] if isinstance(named, str) else named or []
+    return entity_id in targets or entry.get("context_entity_id") == entity_id
 
 
 def _call(entry: dict[str, Any], own_contexts: frozenset[str]) -> dict[str, Any]:
@@ -58,6 +70,7 @@ async def async_action_calls(
     end: datetime,
     *,
     action: str | None,
+    entity_id: str | None,
     own_contexts: frozenset[str],
 ) -> list[dict[str, Any]]:
     """Return the actions called in a window, newest first.
@@ -76,5 +89,6 @@ async def async_action_calls(
         for entry in entries
         if "service" in entry
         and (action is None or action in (entry["domain"], _name(entry)))
+        and (entity_id is None or _involves(entry, entity_id))
     ]
     return sorted(calls, key=lambda call: call["when"], reverse=True)
