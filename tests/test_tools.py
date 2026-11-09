@@ -228,13 +228,17 @@ async def test_entities_are_found_by_their_other_names(
 ) -> None:
     """Users and voice know an entity by its aliases, and by its name before 2026.11."""
     entity_id = populated["entity"]
-    entity_registry.async_update_entity(entity_id, aliases=["Heizung", "Kessel"])
+    entity_registry.async_update_entity(
+        entity_id, aliases=[er.COMPUTED_NAME, "Heizung", "Kessel"]
+    )
     if HA_2026_11:
         entity_registry._async_update_entity(entity_id, compat_name="Boiler water")
     found = await call_tool("list_entities", search="kessel")
     assert [item["entity_id"] for item in found.data["items"]] == [entity_id]
     registry = (await call_tool("get_entity", entity_id=entity_id)).data["registry"]
+    # The alias that stands for its own name is not repeated.
     assert registry["other_names"][:2] == ["Heizung", "Kessel"]
+    assert len(registry["other_names"]) == (3 if HA_2026_11 else 2)
     if HA_2026_11:
         assert registry["other_names"][2] == "Boiler water"
         found = await call_tool("list_entities", search="boiler water")

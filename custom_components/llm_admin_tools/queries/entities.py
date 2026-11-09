@@ -25,18 +25,19 @@ class EntityFilter:
     include_diagnostic: bool = False
 
 
-@callback
-def _other_names(hass: HomeAssistant, entry: er.RegistryEntry | None) -> list[str]:
+def _other_names(entry: er.RegistryEntry | None) -> list[str]:
     """Return the names an entity is also known by.
 
-    Those are its aliases, and from 2026.11 the name it had before names were made of
-    parts, which users and older definitions may still use.
+    Those are the aliases set for it, and from 2026.11 the name it had before names
+    were made of parts, which users and older definitions may still use. An alias can
+    also stand for the entity's own name, which every entity has among its aliases
+    from 2026.11, and repeating that says nothing.
     """
     if entry is None:
         return []
     compat_name: str | None = getattr(entry, "compat_name", None)
     return [
-        *er.async_get_entity_aliases(hass, entry, allow_empty=True),
+        *(alias.strip() for alias in entry.aliases if isinstance(alias, str)),
         *([compat_name] if compat_name else []),
     ]
 
@@ -101,7 +102,7 @@ def list_entities(
         entry = entity_registry.async_get(state.entity_id)
         area_id = entity_area_id(hass, entry) if entry is not None else None
         device_id = entry.device_id if entry is not None else None
-        other_names = _other_names(hass, entry)
+        other_names = _other_names(entry)
         if not _matches(
             state, other_names, area_id, device_id, conditions, scrub=scrub
         ):
@@ -168,7 +169,7 @@ def _registry_summary(hass: HomeAssistant, entry: er.RegistryEntry) -> dict[str,
         "area_id": entity_area_id(hass, entry),
         "name": entry.name,
         "original_name": entry.original_name,
-        "other_names": _other_names(hass, entry),
+        "other_names": _other_names(entry),
         "disabled_by": entry.disabled_by,
         "hidden_by": entry.hidden_by,
         "entity_category": entry.entity_category,
