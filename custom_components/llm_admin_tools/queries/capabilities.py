@@ -99,6 +99,19 @@ def data_sources(hass: HomeAssistant) -> dict[str, Any]:
     }
 
 
+NO_SERVICES_ALLOWED = (
+    "No service is allowed. call_service is refused, and so is anything written "
+    "that calls one, such as an automation or a dashboard button. Only the owner can "
+    "allow them."
+)
+_SERVICES_ALLOWED = (
+    "A domain allows all its services, a name such as light.turn_on only that one, "
+    "and * those of every domain except never.domains_allowed_per_service_only. "
+    "Automations, scripts and dashboard buttons that are written may call only these "
+    "too. find_services lists them with their fields."
+)
+
+
 def write_capabilities(
     settings: WriteSettings, tools: list[str], *, templates_allowed: bool
 ) -> dict[str, Any]:
@@ -122,6 +135,9 @@ def write_capabilities(
         "delete_allowed": settings.allow_delete,
         "templates_allowed": templates_allowed,
         "allowed_services": sorted(settings.allowed_services),
+        "allowed_services_mean": (
+            _SERVICES_ALLOWED if settings.allowed_services else NO_SERVICES_ALLOWED
+        ),
         "protected_kinds": [kind for kind, names in protected.items() if names],
         "never": {
             "domains": sorted(NEVER_DOMAINS),

@@ -7,6 +7,7 @@ import probatio
 
 from homeassistant.core import HomeAssistant
 
+from ..queries.capabilities import NO_SERVICES_ALLOWED
 from ..queries.services import async_describe_services
 from .base import ReadOnlyTool
 from .params import PAGING, TEXT, paginate
@@ -49,4 +50,7 @@ class FindServicesTool(ReadOnlyTool):
             args.get("search"),
             scrub=self._runtime.redactor.scrub_text,
         )
-        return paginate(services, args)
+        page = paginate(services, args)
+        if not self._runtime.writes.settings.allowed_services:
+            return {**page, "note": NO_SERVICES_ALLOWED}
+        return page

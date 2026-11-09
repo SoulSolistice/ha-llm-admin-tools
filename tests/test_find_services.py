@@ -110,6 +110,18 @@ async def test_all_domains_are_found_by_domain_or_words(
     assert await found(domain="lock") == ["lock.unlock"]
     assert await found(search="turn_on") == ["light.turn_on"]
     assert await found(domain="homeassistant") == []
+    assert "note" not in (await call_tool(_TOOL)).data
+
+
+async def test_says_when_nothing_is_allowed(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """An empty answer says why, rather than look as if there were no services."""
+    _register(hass, "light", "turn_on")
+    await _allow(hass, init_integration)
+    data = (await call_tool(_TOOL)).data
+    assert data["items"] == []
+    assert "No service is allowed" in data["note"]
 
 
 async def test_describes_fields(

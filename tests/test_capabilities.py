@@ -206,6 +206,16 @@ async def test_report_says_changes_are_off(call_tool: CallTool) -> None:
     assert "tools of this integration only read" in " ".join(report["notes"])
 
 
+async def test_report_says_no_service_is_allowed(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """An empty list could be read as nothing restricted; it is nothing allowed."""
+    await apply_options(hass, init_integration, write_subjects=["automations"])
+    writes = (await call_tool(_REPORT)).data["writes"]
+    assert writes["allowed_services"] == []
+    assert "No service is allowed" in writes["allowed_services_mean"]
+
+
 async def test_report_describes_what_can_change(
     hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
 ) -> None:
@@ -225,6 +235,7 @@ async def test_report_describes_what_can_change(
     assert writes["subjects"] == ["labels", "services"]
     assert writes["delete_allowed"] is True
     assert writes["allowed_services"] == ["light"]
+    assert "find_services lists them" in writes["allowed_services_mean"]
     assert writes["protected_kinds"] == ["entities"]
     assert "shell_command" in writes["never"]["domains"]
     assert "homeassistant.stop" in writes["never"]["services"]
