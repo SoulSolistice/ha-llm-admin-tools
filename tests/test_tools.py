@@ -7,6 +7,7 @@ import logging
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import probatio
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -273,6 +274,34 @@ async def test_get_entity_shortens_long_attributes(
     )
     assert named.data["attributes"] == {"items": items}
     assert "shortened_attributes" not in named.data
+
+
+async def test_get_entity_reads_several_at_once(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    call_tool: CallTool,
+) -> None:
+    """Those not there and those hidden are told apart from neither."""
+    hass.states.async_set("sensor.a", "1", {"text": "x" * MAX_ATTRIBUTE_CHARACTERS * 2})
+    hass.states.async_set("sensor.b", "2", {"unit": "W"})
+    hass.states.async_set("camera.c", "idle")
+    await apply_options(hass, init_integration, excluded_domains=["camera"])
+    result = await call_tool(
+        "get_entity",
+        entity_ids=["sensor.a", "camera.c", "sensor.b", "sensor.none", "sensor.a"],
+    )
+    a, b = result.data["entities"]
+    assert (a["entity_id"], b["entity_id"]) == ("sensor.a", "sensor.b")
+    assert "text" in a["shortened_attributes"]
+    assert "shortened_attributes" not in b
+    assert result.data["not_found"] == ["camera.c", "sensor.none"]
+    named = await call_tool("get_entity", entity_ids=["sensor.b"], attributes=["unit"])
+    assert named.data == {"entities": [{**b, "attributes": {"unit": "W"}}]}
+    with pytest.raises(ServiceValidationError) as err:
+        await call_tool("get_entity")
+    assert err.value.translation_key == "entity_id_required"
+    with pytest.raises(probatio.Invalid):
+        await call_tool("get_entity", entity_id="sensor.a", entity_ids=["sensor.b"])
 
 
 async def test_get_entity_without_long_attributes_reports_nothing(

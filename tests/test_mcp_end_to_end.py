@@ -81,7 +81,10 @@ async def test_admin_lists_read_only_tools(
     assert all(not tool["annotations"]["destructiveHint"] for tool in tools.values())
     limit = tools["list_entities"]["inputSchema"]["properties"]["limit"]
     assert limit["maximum"] == 500
-    assert tools["get_entity"]["inputSchema"]["required"] == ["entity_id"]
+    assert tools["get_entity_history"]["inputSchema"]["required"] == ["entity_ids"]
+    assert {"entity_id", "entity_ids"} <= set(
+        tools["get_entity"]["inputSchema"]["properties"]
+    )
     assert tools["list_definitions"]["inputSchema"]["properties"]["kind"]["enum"] == [
         "automation",
         "script",

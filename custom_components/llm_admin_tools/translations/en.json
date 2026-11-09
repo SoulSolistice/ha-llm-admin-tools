@@ -140,6 +140,9 @@
     "redacted_value": {
       "message": "The request holds {marker}, which stands in for a value that was withheld. Saving it would destroy that value. Leave the field out, or state a new value."
     },
+    "entity_id_required": {
+      "message": "Give entity_id, or entity_ids for several."
+    },
     "registry_item_id_required": {
       "message": "This needs the ID of the item."
     },

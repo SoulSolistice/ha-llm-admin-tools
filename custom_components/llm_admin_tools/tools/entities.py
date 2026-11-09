@@ -6,8 +6,10 @@ from typing import Any, override
 import probatio
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 
-from ..policy.limits import MAX_ATTRIBUTE_CHARACTERS
+from ..errors import invalid_input
+from ..policy.limits import MAX_ATTRIBUTE_CHARACTERS, MAX_TARGETS_PER_CALL
 from ..queries.entities import EntityFilter, get_entity, list_entities
 from ..shortening import shorten_values
 from .base import ReadOnlyTool
@@ -81,14 +83,21 @@ class GetEntityTool(ReadOnlyTool):
     name = "get_entity"
     title = "Get an entity"
     description = (
-        "Return the state, attributes and registry entry of one entity. Long "
+        "Return the state, attributes and registry entry of one entity, or of up to "
+        f"{MAX_TARGETS_PER_CALL} with entity_ids: then those that do not exist are "
+        "listed in not_found. Long "
         f"attributes are cut to about {MAX_ATTRIBUTE_CHARACTERS} characters and "
         "listed in shortened_attributes with their full size. Name them in attributes "
         f"to get them in full. {DATA_NOTICE}"
     )
     parameters = probatio.Schema(
         {
-            probatio.Required("entity_id", description="The entity ID."): TEXT,
+            probatio.Exclusive(
+                "entity_id", "entity", description="The entity ID."
+            ): TEXT,
+            probatio.Exclusive(
+                "entity_ids", "entity", description="Several entity IDs instead."
+            ): probatio.All([TEXT], probatio.Length(min=1, max=MAX_TARGETS_PER_CALL)),
             probatio.Optional(
                 "attributes",
                 description="Return only these attributes, in full.",
@@ -100,14 +109,40 @@ class GetEntityTool(ReadOnlyTool):
     async def async_read(
         self, hass: HomeAssistant, args: Mapping[str, Any]
     ) -> Mapping[str, Any]:
-        """Return the entity."""
-        return get_entity(hass, self.exposure, args["entity_id"])
+        """Return the entity, or each of several."""
+        if "entity_id" in args:
+            return get_entity(hass, self.exposure, args["entity_id"])
+        if "entity_ids" not in args:
+            raise invalid_input("entity_id_required")
+        entities: list[dict[str, Any]] = []
+        not_found: list[str] = []
+        for entity_id in dict.fromkeys(args["entity_ids"]):
+            try:
+                entities.append(get_entity(hass, self.exposure, entity_id))
+            except ServiceValidationError:
+                # Hidden or not there, which look the same.
+                not_found.append(entity_id)
+        return {"entities": entities, **({"not_found": not_found} if not_found else {})}
 
     @override
     def reduce_result(
         self, result: dict[str, Any], args: Mapping[str, Any]
     ) -> dict[str, Any]:
-        """Return the attributes that were asked for, or else all, cut to a length."""
+        """Return the attributes asked for, or else all, cut to a length, of each."""
+        if "entities" in result:
+            return {
+                **result,
+                "entities": [
+                    self._reduce_entity(entity, args) for entity in result["entities"]
+                ],
+            }
+        return self._reduce_entity(result, args)
+
+    @staticmethod
+    def _reduce_entity(
+        result: dict[str, Any], args: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Return the attributes of one entity that were asked for, cut to a length."""
         attributes = result["attributes"]
         if "attributes" in args:
             selected = {

@@ -573,7 +573,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `get_health_report` | What is wrong right now, in one short answer |
 | `list_repairs` | The repairs Home Assistant lists, the most severe first |
 | `list_entities` | Entities and states; filter by domain, area, device, state or text, which also finds aliases |
-| `get_entity` | State, attributes and registry entry of one entity, with its aliases and, from 2026.11, its name from before |
+| `get_entity` | State, attributes and registry entry of an entity, or of up to 10 at once, with its aliases and, from 2026.11, its name from before |
 | `get_entity_history` | History of up to 10 entities over up to about 7 days |
 | `get_extended_history` | Far more history of one entity, on request with a reason |
 | `list_devices` | Devices and child devices, with manufacturer, model, version and area |
@@ -584,7 +584,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `get_definition` | The configuration of one automation, script or scene, with the entity ID of each entity a device trigger, condition or action names by its registry ID |
 | `get_automation_trace` | How an automation or script ran, step by step, where it stopped, and which run of a script a step started |
 | `get_action_history` | From 2026.11, which actions were called in up to about 7 days, by whom or what |
-| `find_references` | What names an entity or device, or an entity that does not exist |
+| `find_references` | What names an entity or device, or up to 10 at once, or an entity that does not exist |
 | `list_helpers` | Counters, input helpers, persons, schedules, tags, timers and zones |
 | `list_dashboards` | Dashboards other than the default |
 | `get_dashboard` | The configuration of one dashboard |

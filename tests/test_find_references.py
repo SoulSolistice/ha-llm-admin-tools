@@ -69,6 +69,18 @@ async def test_finds_what_uses_an_entity(
     assert "not_checked" not in data
     assert "how_found" in data
 
+    several = (
+        await call_tool(
+            "find_references", targets=["sensor.one", "sensor.one_more", "sensor.one"]
+        )
+    ).data
+    assert several["targets"] == ["sensor.one", "sensor.one_more", "sensor.one"]
+    assert [(row["target"], row["id"]) for row in several["items"]] == [
+        ("sensor.one", "automation.by_entry"),
+        ("sensor.one", "automation.by_name"),
+        ("sensor.one_more", "automation.longer"),
+    ]
+
 
 @pytest.mark.usefixtures("core", "init_integration")
 async def test_finds_what_uses_a_device_and_what_is_on_it(

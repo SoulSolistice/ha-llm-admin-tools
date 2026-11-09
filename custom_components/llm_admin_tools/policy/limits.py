@@ -15,6 +15,8 @@ MAX_SCRUBBED_TEXT_CHARACTERS = 100_000
 MIN_WITHHELD_TEXT_LENGTH = 2
 
 MAX_HISTORY_ENTITIES = 10
+# Looked up at once in one call, such as with get_entity or find_references.
+MAX_TARGETS_PER_CALL = 10
 DEFAULT_HISTORY_WINDOW = timedelta(hours=24)
 MAX_HISTORY_WINDOW = timedelta(days=7)
 # A client rarely knows the time exactly, and its request takes time to arrive. Asking
