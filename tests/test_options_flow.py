@@ -307,6 +307,8 @@ async def test_changes_start_off_and_can_be_allowed(
     form = await _open_step(hass, init_integration, "writes")
     assert form["type"] is FlowResultType.FORM
     assert init_integration.runtime_data.writes.settings.subjects == frozenset()
+    choices = form["data_schema"].schema[CONF_ALLOWED_SERVICES].config["options"]
+    assert choices[0] == "*"
 
     await _save_step(
         hass,
@@ -315,7 +317,7 @@ async def test_changes_start_off_and_can_be_allowed(
         {
             CONF_WRITE_SUBJECTS: ["services"],
             CONF_WRITE_ALLOW_DELETE: True,
-            CONF_ALLOWED_SERVICES: ["light", "homeassistant.restart"],
+            CONF_ALLOWED_SERVICES: ["*", "homeassistant.restart"],
             CONF_PROTECTED_ENTITIES: ["light.kept"],
         },
     )
@@ -323,7 +325,7 @@ async def test_changes_start_off_and_can_be_allowed(
     settings = init_integration.runtime_data.writes.settings
     assert settings.subjects == {"services"}
     assert settings.allow_delete is True
-    assert settings.allowed_services == {"light", "homeassistant.restart"}
+    assert settings.allowed_services == {"*", "homeassistant.restart"}
     assert settings.protected_entities == {"light.kept"}
 
 

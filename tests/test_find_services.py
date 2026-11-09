@@ -92,6 +92,26 @@ async def test_lists_only_what_is_allowed(
     ]
 
 
+async def test_all_domains_are_found_by_domain_or_words(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """With every domain allowed, a client narrows down what it asks for."""
+    _register(hass, "light", "turn_on")
+    _register(hass, "lock", "unlock")
+    _register(hass, "homeassistant", "restart")
+    _register(hass, "shell_command", "run")
+    await _allow(hass, init_integration, "*")
+
+    async def found(**args: Any) -> list[str]:
+        data = (await call_tool(_TOOL, **args)).data
+        return [item["service"] for item in data["items"]]
+
+    assert await found() == ["light.turn_on", "lock.unlock"]
+    assert await found(domain="lock") == ["lock.unlock"]
+    assert await found(search="turn_on") == ["light.turn_on"]
+    assert await found(domain="homeassistant") == []
+
+
 async def test_describes_fields(
     hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
 ) -> None:

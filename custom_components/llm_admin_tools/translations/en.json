@@ -291,7 +291,7 @@
           "write_subjects": "What can be changed"
         },
         "data_description": {
-          "allowed_services": "A domain allows all its services, for example light. A service allows only that one, for example light.turn_on. Automations and scripts written by a client are limited to these too, as they run later with all rights. Allowing something that runs other things, such as script, allows whatever those do. Domains homeassistant and hassio can only be allowed one service at a time. Some can never be allowed: shell commands, python scripts, stopping the system, and this integration itself.",
+          "allowed_services": "A domain allows all its services, for example light. A service allows only that one, for example light.turn_on. * allows the services of every domain, except homeassistant and hassio. Automations and scripts written by a client are limited to these too, as they run later with all rights. Allowing something that runs other things, such as script, allows whatever those do. Domains homeassistant and hassio can only be allowed one service at a time. Some can never be allowed: shell commands, python scripts, stopping the system, and this integration itself.",
           "protected_areas": "A client can see these and what is in them, but not change them.",
           "protected_domains": "A client can see the entities of these domains, but not change them.",
           "protected_entities": "A client can see these entities, but not change them.",

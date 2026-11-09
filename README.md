@@ -211,7 +211,7 @@ Under **Changes**. Nothing can be changed until you choose something here.
 | What can be changed | Nothing | Services, automations, scripts, scenes, entities, devices, areas, floors, labels, categories, helpers, persons, dashboards, integration entries. Each adds tools for clients. |
 | Allow deleting | Off | Without this, deleting is refused everywhere. |
 | Allow templates | Off | See [templates](#templates). |
-| Allowed services | None | `light` allows all services of the domain, `light.turn_on` only that one. |
+| Allowed services | None | `light` allows all services of the domain, `light.turn_on` only that one. `*` allows every domain's services, but still not `homeassistant`, `hassio` or those that are never allowed. |
 | Protect domains, entities, areas, labels, integrations | None | A client can see these and what is in them, but not change them. |
 
 Hiding and protecting follow the same rules: whatever would hide an entity, such as the area

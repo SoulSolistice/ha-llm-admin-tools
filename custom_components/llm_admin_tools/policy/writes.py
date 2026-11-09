@@ -53,6 +53,8 @@ NEVER_SERVICES = frozenset(
         "homeassistant.stop",
     }
 )
+# Allows the services of every domain, as if each were named, so not those above.
+ALL_SERVICES = "*"
 # These hold too much of everything to allow at once, so each service is named.
 NAMED_SERVICES_ONLY_DOMAINS = frozenset({"hassio", "homeassistant"})
 # A client must not be able to change, or get rid of, what limits it.
@@ -166,7 +168,8 @@ class WritePolicy:
         if not service_entry_possible(name):
             return False
         return name in allowed or (
-            domain in allowed and domain not in NAMED_SERVICES_ONLY_DOMAINS
+            (domain in allowed or ALL_SERVICES in allowed)
+            and domain not in NAMED_SERVICES_ONLY_DOMAINS
         )
 
     def require_service(self, domain: str, service: str) -> None:

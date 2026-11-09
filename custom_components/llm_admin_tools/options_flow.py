@@ -60,7 +60,12 @@ from .policy.settings import (
     DEFAULT_REDACT_PERSONAL,
     DEFAULT_SCRUB_ESPHOME_SECRETS,
 )
-from .policy.writes import NEVER_DOMAINS, WRITE_SUBJECTS, service_entry_possible
+from .policy.writes import (
+    ALL_SERVICES,
+    NEVER_DOMAINS,
+    WRITE_SUBJECTS,
+    service_entry_possible,
+)
 from .tools import TOOL_CLASSES
 from .tools.catalog import WRITE_TOOL_CLASSES
 
@@ -329,9 +334,12 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
             ): BooleanSelector(),
             _list_field(CONF_ALLOWED_SERVICES): SelectSelector(
                 SelectSelectorConfig(
-                    options=sorted(
-                        set(self.hass.services.async_services()) - NEVER_DOMAINS
-                    ),
+                    options=[
+                        ALL_SERVICES,
+                        *sorted(
+                            set(self.hass.services.async_services()) - NEVER_DOMAINS
+                        ),
+                    ],
                     multiple=True,
                     custom_value=True,
                     mode=SelectSelectorMode.DROPDOWN,

@@ -120,6 +120,15 @@ async def test_other_services_are_refused(call_tool: CallTool, service: str) -> 
         ([" Light "], "light.turn_on", True),
         (["homeassistant.restart"], "homeassistant.restart", True),
         (["homeassistant.restart"], "homeassistant.reload_all", False),
+        # Every domain, as if each were named: so not those named one at a time.
+        (["*"], "light.turn_on", True),
+        (["*"], "script.anything", True),
+        (["*"], "homeassistant.restart", False),
+        (["*", "homeassistant.restart"], "homeassistant.restart", True),
+        (["*"], "hassio.backup_full", False),
+        (["*"], "homeassistant.stop", False),
+        (["*"], "shell_command.run", False),
+        (["*"], "llm_admin_tools.anything", False),
         # Even if they get into the saved settings: the settings menu refuses them.
         (["homeassistant"], "homeassistant.restart", False),
         (["hassio"], "hassio.backup_full", False),
