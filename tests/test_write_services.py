@@ -41,14 +41,20 @@ async def allow_light(hass: HomeAssistant, init_integration: MockConfigEntry) ->
 @pytest.mark.usefixtures("allow_light")
 async def test_call_goes_through(hass: HomeAssistant, call_tool: CallTool) -> None:
     """The entities are passed on, and the caller is who the logbook names."""
-    calls = async_mock_service(hass, "light", "turn_on")
+    calls: list[ServiceCall] = []
+
+    async def turn_on(call: ServiceCall) -> None:
+        calls.append(call)
+        hass.states.async_set("light.a", "on")
+
+    hass.services.async_register("light", "turn_on", turn_on)
     hass.states.async_set("light.a", "off")
     result = await _call(
         call_tool, "light.turn_on", entity_ids=["light.a"], data={"brightness": 5}
     )
     assert result.data["done"] is True
     assert result.data["before"] == {"light.a": "off"}
-    assert result.data["result"] == {"finished": True}
+    assert result.data["result"] == {"finished": True, "after": {"light.a": "on"}}
     assert calls[0].data == {"entity_id": ["light.a"], "brightness": 5}
     assert calls[0].context.user_id is not None
 

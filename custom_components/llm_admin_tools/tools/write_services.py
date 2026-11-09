@@ -27,8 +27,9 @@ class CallServiceTool(WriteTool):
     description = (
         "Call a service the owner allows, on entities named one by one. Areas, devices "
         "and all entities cannot be targeted. find_services lists what is allowed, "
-        "with its fields. The result gives the states before the call. If finished is "
-        "false, the service is still running and may yet take effect."
+        "with its fields. The result gives the states before the call, and after it "
+        "once it finished; a device may report its new state a moment later. If "
+        "finished is false, the service is still running and may yet take effect."
     )
     subjects = ("services",)
     # What a service does is up to it, and many reach outside: a notification, speech,
@@ -94,15 +95,23 @@ class CallServiceTool(WriteTool):
                     message=humanize_error(call_data, err),
                 ) from err
         targets = f" on {', '.join(entity_ids)}" if entity_ids else ""
+        call = partial(
+            async_call_service, hass, domain, service, call_data, llm_context.context
+        )
+
+        async def async_apply() -> dict[str, Any]:
+            result = await call()
+            if not result["finished"] or not entity_ids:
+                return result
+            after = {
+                entity_id: state.state
+                for entity_id in entity_ids
+                if (state := hass.states.get(entity_id)) is not None
+            }
+            return {**result, "after": after}
+
         return WritePlan(
             summary=f"{domain}.{service}{targets}",
             before=states or None,
-            apply=partial(
-                async_call_service,
-                hass,
-                domain,
-                service,
-                call_data,
-                llm_context.context,
-            ),
+            apply=async_apply,
         )
