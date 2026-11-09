@@ -95,6 +95,11 @@ async def test_automation_life_cycle(
     key = created.data["result"]["id"]
     entity_id = created.data["result"]["entity_id"]
     assert entity_id == "automation.test"
+    assert created.data["result"]["state"] == "on"
+    # Not the one a dry run would have made up.
+    assert created.data["summary"] == "create automation with a new ID"
+    # The light has no state in this test.
+    assert "light.a." in created.data["warnings"][0]
     await hass.async_block_till_done()
     assert hass.states.get(entity_id) is not None
     hass.bus.async_fire("go")
@@ -345,6 +350,24 @@ async def test_what_cannot_be_checked_is_refused(
 ) -> None:
     """It could run anything, and that only shows when it runs."""
     assert await _refusal(call_tool, config) == "definition_part_refused"
+
+
+@pytest.mark.usefixtures("definitions")
+async def test_dry_run_warns_of_entities_that_do_not_exist(
+    hass: HomeAssistant, call_tool: CallTool
+) -> None:
+    """A typo, or a script still to be written: it would do nothing with them."""
+    hass.states.async_set("light.a", "off")
+    config = _automation(
+        _service("light.turn_on", target={"entity_id": ["light.a", "light.typo"]}),
+        triggers=[{"trigger": "state", "entity_id": "sensor.not_yet"}],
+    )
+    result = await _write(
+        call_tool, "automation", "create", config=config, dry_run=True
+    )
+    (warning,) = result.data["warnings"]
+    assert "light.typo, sensor.not_yet." in warning
+    assert "light.a," not in warning
 
 
 @pytest.mark.usefixtures("definitions")

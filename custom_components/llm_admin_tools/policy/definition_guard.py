@@ -100,6 +100,9 @@ class _Guard:
         self._templates_run = templates_run
         # All of them are told at once, so the owner can allow them in one go.
         self.refused_services: set[str] = set()
+        # Likely a typo, or something still to be made. Only found while nothing is
+        # hidden: otherwise a name that does not exist is refused.
+        self.unknown_entities: set[str] = set()
 
     def raise_if_refused(self) -> None:
         """Raise naming every service the walk found that is not allowed."""
@@ -236,6 +239,8 @@ class _Guard:
             self._policy.require_visible_entity(entity_id)
         else:
             self._policy.require_target(entity_id)
+        if not self._policy.entity_exists(entity_id):
+            self.unknown_entities.add(entity_id)
 
     def _check_device(self, device_id: str, part: _Part) -> None:
         """Check one device."""
@@ -306,11 +311,15 @@ def check_dashboard(policy: WritePolicy, config: Mapping[str, Any]) -> None:
 
 
 @callback
-def check_definition(policy: WritePolicy, config: Mapping[str, Any]) -> None:
-    """Raise unless an automation, script or scene stays within what is allowed."""
+def check_definition(policy: WritePolicy, config: Mapping[str, Any]) -> list[str]:
+    """Raise unless an automation, script or scene stays within what is allowed.
+
+    Return the entities it names that do not exist.
+    """
     guard = _Guard(policy, templates_run=True)
     guard.walk(config, _Part.ACTION)
     guard.raise_if_refused()
+    return sorted(guard.unknown_entities)
 
 
 @callback

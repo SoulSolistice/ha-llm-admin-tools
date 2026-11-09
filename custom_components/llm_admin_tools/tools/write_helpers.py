@@ -14,6 +14,13 @@ from .helpers import HELPER_KIND
 from .params import TEXT
 from .write_base import WRITE_PARAMS, WritePlan, WriteTool, change_summary
 
+# Core restores the last value of an input helper, unless initial says otherwise.
+_INITIAL = (
+    "initial sets the value of this {kind} at every start of Home Assistant, undoing "
+    "any change made since. Leave it out to keep the last value, and set the value "
+    "with its service."
+)
+
 
 class WriteHelperTool(WriteTool):
     """Change the helpers that the UI can edit."""
@@ -23,9 +30,10 @@ class WriteHelperTool(WriteTool):
     description = (
         "Create, change or delete a helper that the UI can edit: a counter, input "
         "helper, person, schedule, tag, timer or zone. fields are those the UI offers "
-        "for it, as list_helpers shows them. When changing one, state all of them. A "
-        "person cannot be linked to a user account. list_helpers withholds the ID of a "
-        "tag, so only one whose ID you know can be changed."
+        "for it, as list_helpers shows them. When changing one, state all of them. To "
+        "set its value, call its service afterwards, such as input_number.set_value. "
+        "A person cannot be linked to a user account. list_helpers withholds the ID of "
+        "a tag, so only one whose ID you know can be changed."
     )
     subjects = ("helpers", "persons")
     parameters = probatio.Schema(
@@ -123,4 +131,9 @@ class WriteHelperTool(WriteTool):
             summary=change_summary(f"{operation} {kind}{target}", stated),
             before=before,
             apply=async_apply,
+            warnings=(
+                (_INITIAL.format(kind=kind),)
+                if kind.startswith("input_") and "initial" in fields
+                else ()
+            ),
         )

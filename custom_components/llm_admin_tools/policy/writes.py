@@ -205,7 +205,7 @@ class WritePolicy:
             raise invalid_input("entity_not_found", entity_id=f"{domain}.{service}")
         self.require_entity(script)
 
-    def _entity_exists(self, entity_id: str) -> bool:
+    def entity_exists(self, entity_id: str) -> bool:
         """Return if an entity has a state or a registry entry."""
         return (
             self.hass.states.get(entity_id) is not None
@@ -220,7 +220,7 @@ class WritePolicy:
         only what is hidden were refused, the refusal would tell that it is there.
         """
         if not self._exposure.entity_allowed(entity_id) or (
-            self.reading_restricted and not self._entity_exists(entity_id)
+            self.reading_restricted and not self.entity_exists(entity_id)
         ):
             raise invalid_input("entity_not_found", entity_id=entity_id)
 
@@ -257,7 +257,7 @@ class WritePolicy:
     @callback
     def require_existing_entity(self, entity_id: str) -> None:
         """Raise unless an entity exists and may be changed, for acting on it now."""
-        if not self._entity_exists(entity_id):
+        if not self.entity_exists(entity_id):
             raise invalid_input("entity_not_found", entity_id=entity_id)
         self.require_entity(entity_id)
 

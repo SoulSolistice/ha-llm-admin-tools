@@ -15,6 +15,10 @@ from .params import TEXT
 from .write_base import WRITE_PARAMS, WritePlan, WriteTool
 
 _SUBJECTS = {"automation": "automations", "script": "scripts", "scene": "scenes"}
+_UNKNOWN_ENTITIES = (
+    "These entities do not exist yet, so it does nothing with them until they do: "
+    "{entities}. Check for a typo."
+)
 
 
 class WriteDefinitionTool(WriteTool):
@@ -29,7 +33,8 @@ class WriteDefinitionTool(WriteTool):
         "change. Blueprints are refused, and so are templates unless "
         "get_capabilities says writes.templates_allowed. id is the unique_id from "
         "list_definitions, or for a new script its object ID. config is the whole "
-        "definition, not only what changes."
+        "definition, not only what changes. The result gives the state it loaded "
+        "with, or null if it did not load."
     )
     subjects = tuple(_SUBJECTS.values())
     parameters = probatio.Schema(
@@ -83,7 +88,11 @@ class WriteDefinitionTool(WriteTool):
         if operation != "create" and before is None:
             raise invalid_input("definition_not_found", definition_id=key)
 
-        summary = f"{operation} {kind} {key}"
+        # A dry run makes up an ID of its own, which the change would not get.
+        new_id = operation == "create" and "id" not in args
+        summary = (
+            f"create {kind} with a new ID" if new_id else f"{operation} {kind} {key}"
+        )
         context = llm_context.context
         if operation == "delete":
 
@@ -95,11 +104,30 @@ class WriteDefinitionTool(WriteTool):
         if "config" not in args:
             raise invalid_input("definition_config_required")
         config: dict[str, Any] = args["config"]
-        check_definition(self.writes, config)
+        unknown = check_definition(self.writes, config)
         await editor.async_validate(kind, key, config)
 
         async def async_put() -> dict[str, Any]:
             entity_id = await editor.async_put(kind, key, config, context)
-            return {"id": key, "entity_id": entity_id}
+            # Whether it loaded and is on, without another call to find out.
+            state = (
+                hass.states.get(entity_id)
+                if entity_id is not None and self.exposure.entity_allowed(entity_id)
+                else None
+            )
+            return {
+                "id": key,
+                "entity_id": entity_id,
+                "state": state.state if state is not None else None,
+            }
 
-        return WritePlan(summary=summary, before=before, apply=async_put)
+        return WritePlan(
+            summary=summary,
+            before=before,
+            apply=async_put,
+            warnings=(
+                (_UNKNOWN_ENTITIES.format(entities=", ".join(unknown)),)
+                if unknown
+                else ()
+            ),
+        )

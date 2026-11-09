@@ -431,6 +431,7 @@ async def test_helper_life_cycle(
     item_id = created.data["result"]["id"]
     await hass.async_block_till_done()
     assert hass.states.get("input_boolean.made") is not None
+    assert "warnings" not in created.data
 
     listed = await call_tool("list_helpers", kind="input_boolean")
     assert listed.data["items"][0]["entity_id"] == "input_boolean.made"
@@ -453,6 +454,31 @@ async def test_helper_life_cycle(
     )
     await hass.async_block_till_done()
     assert hass.states.get("input_boolean.made") is None
+
+
+@pytest.mark.usefixtures("helpers")
+async def test_initial_of_an_input_helper_is_warned_of(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """It would undo every change of the value at the next start."""
+    await apply_options(hass, init_integration, write_subjects=["helpers"])
+
+    async def warnings(kind: str, **fields: Any) -> list[str]:
+        result = await call_tool(
+            "write_helper",
+            kind=kind,
+            operation="create",
+            fields={"name": "Made", **fields},
+            reason=_REASON,
+            dry_run=True,
+        )
+        return list(result.data.get("warnings", []))
+
+    (warning,) = await warnings("input_boolean", initial=True)
+    assert "every start" in warning
+    # A counter goes back to initial only when reset, or if it does not restore.
+    assert await warnings("counter", initial=3) == []
+    assert await warnings("input_boolean") == []
 
 
 @pytest.mark.usefixtures("helpers")

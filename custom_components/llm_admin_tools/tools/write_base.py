@@ -57,6 +57,8 @@ class WritePlan:
     before: Any = None
     # Reports what would go and what uses it, for what cannot be undone that easily.
     affects: Callable[[], Awaitable[dict[str, Any]]] | None = None
+    # What is allowed, but may well not be what the client meant.
+    warnings: tuple[str, ...] = ()
 
 
 def change_summary(change: str, fields: Mapping[str, Any]) -> str:
@@ -163,6 +165,7 @@ class WriteTool(BaseTool):
             **({"before": plan.before} if plan.before is not None else {}),
             # Once it is done, there is nothing left to report on.
             **({"affects": await plan.affects()} if plan.affects is not None else {}),
+            **({"warnings": list(plan.warnings)} if plan.warnings else {}),
         }
         if args["dry_run"]:
             return {"dry_run": True, **outcome}
