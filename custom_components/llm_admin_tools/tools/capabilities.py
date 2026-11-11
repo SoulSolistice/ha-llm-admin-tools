@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 from typing import Any, override
 
+import probatio
+
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -62,6 +64,20 @@ _NOTES = (
 )
 
 
+_SECTIONS = (
+    "start_here",
+    "tools",
+    "writes",
+    "scope",
+    "withheld_values",
+    "data_sources",
+    "limits",
+    "on_request",
+)
+# What a part of the report would be misread without.
+_ALWAYS = ("current_time", "notes")
+
+
 class GetCapabilitiesTool(ReadOnlyTool):
     """Report the tools, restrictions and limits that apply to a client."""
 
@@ -74,14 +90,34 @@ class GetCapabilitiesTool(ReadOnlyTool):
         "results, and what can be requested beyond them. Call this first: start_here "
         "says which tool to use for what, and tools says which of them work right "
         "now. It names nothing that is hidden, and says nothing about other tools "
-        f"your client offers. {DATA_NOTICE}"
+        "your client offers. To check again after the owner changed a setting, ask "
+        f"for only the sections you need, such as writes. {DATA_NOTICE}"
+    )
+    parameters = probatio.Schema(
+        {
+            probatio.Optional(
+                "sections",
+                description="Only these parts; current_time and notes always come.",
+            ): probatio.All([probatio.In(_SECTIONS)], probatio.Length(min=1)),
+        }
     )
 
     @override
     async def async_read(
         self, hass: HomeAssistant, args: Mapping[str, Any]
     ) -> Mapping[str, Any]:
-        """Return the report."""
+        """Return the report, or the parts of it asked for."""
+        report = self._report(hass)
+        if "sections" not in args:
+            return report
+        return {
+            key: value
+            for key, value in report.items()
+            if key in _ALWAYS or key in args["sections"]
+        }
+
+    def _report(self, hass: HomeAssistant) -> dict[str, Any]:
+        """Return the whole report."""
         enabled = self.exposure.tool_enabled
         reads = [tool for tool in READ_TOOL_CLASSES if enabled(tool.name)]
         unavailable = {

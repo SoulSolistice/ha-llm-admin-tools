@@ -4,6 +4,8 @@ from datetime import timedelta
 import json
 from typing import Any
 
+import probatio
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.llm_admin_tools.tools import TOOL_CLASSES
@@ -204,6 +206,20 @@ async def test_report_says_changes_are_off(call_tool: CallTool) -> None:
     assert report["writes"]["enabled"] is False
     assert "cannot change that" in report["writes"]["note"]
     assert "tools of this integration only read" in " ".join(report["notes"])
+
+
+async def test_report_in_parts(
+    hass: HomeAssistant, init_integration: MockConfigEntry, call_tool: CallTool
+) -> None:
+    """A check again after a change of settings needs only part of it."""
+    await apply_options(hass, init_integration, write_subjects=["automations"])
+    whole = (await call_tool(_REPORT)).data
+    part = (await call_tool(_REPORT, sections=["writes", "limits"])).data
+    assert set(part) == {"current_time", "notes", "writes", "limits"}
+    assert part["writes"] == whole["writes"]
+    assert part["notes"] == whole["notes"]
+    with pytest.raises(probatio.Invalid):
+        await call_tool(_REPORT, sections=["everything"])
 
 
 async def test_report_says_no_service_is_allowed(

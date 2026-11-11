@@ -568,7 +568,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 
 | Tool | Purpose |
 | --- | --- |
-| `get_capabilities` | Which tool to use for what, what is available and restricted, and what can be requested beyond the limits |
+| `get_capabilities` | Which tool to use for what, what is available and restricted, and what can be requested beyond the limits. `sections` returns only some parts, such as `writes`. |
 | `get_system_info` | Versions of Home Assistant, the frontend, Python, the operating system and any Supervisor, with the platform and running state |
 | `get_health_report` | What is wrong right now, in one short answer |
 | `list_repairs` | The repairs Home Assistant lists, the most severe first |
