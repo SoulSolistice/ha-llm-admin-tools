@@ -19,6 +19,7 @@ from .references import FindReferencesTool
 from .repairs import ListRepairsTool
 from .services import FindServicesTool
 from .traces import GetAutomationTraceTool
+from .write_computed_helpers import WriteComputedHelperTool
 from .write_config_entries import ManageConfigEntryTool
 from .write_dashboards import WriteDashboardTool
 from .write_definitions import WriteDefinitionTool
@@ -89,6 +90,7 @@ _TASKS = (
             UpdateDeviceTool,
             WriteRegistryItemTool,
             WriteHelperTool,
+            WriteComputedHelperTool,
             WriteDashboardTool,
             ManageConfigEntryTool,
         ),

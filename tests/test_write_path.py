@@ -93,7 +93,7 @@ async def test_enabled_tools_do_not_enable_changes(
         ("floors", {"write_registry_item"}),
         ("labels", {"write_registry_item"}),
         ("categories", {"write_registry_item"}),
-        ("helpers", {"write_helper"}),
+        ("helpers", {"write_helper", "write_computed_helper"}),
         ("persons", {"write_helper"}),
         ("dashboards", {"write_dashboard"}),
         ("config_entries", {"manage_config_entry"}),

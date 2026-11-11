@@ -362,6 +362,7 @@ These cover what Home Assistant's API has no tool for:
 | `list_repairs`, in `get_health_report` too | What is listed as broken, the most severe first |
 | `update_entity`, `update_device`, `write_registry_item` | Tidy up names, areas, floors, labels and categories |
 | `list_helpers`, `write_helper` | Counters, input helpers, persons, schedules, tags, timers and zones |
+| `write_computed_helper` | Derivative, filter, integral, min/max, statistics, threshold, trend and utility meter helpers, made through their forms. Template, group and history stats helpers are left out, as their templates or members could get around what is hidden. |
 | `list_dashboards`, `get_dashboard`, `write_dashboard` | Read and write dashboards |
 | `manage_config_entry` | Enable, disable, rename and delete an integration entry, beyond reloading it |
 | `get_extended_history` | Exact states of any entity over any time; the API of 2026.11 has long-term statistics only |
@@ -606,6 +607,7 @@ classes, and to the data that helpers, scenes and dashboards store. See
 | `update_device` | Change a device: name, area, labels, disabled | Devices |
 | `write_registry_item` | Create, change or delete an area, floor, label or category | Areas, Floors, Labels, Categories |
 | `write_helper` | Create, change or delete a helper or person | Helpers, Persons |
+| `write_computed_helper` | Create, change or delete a helper computed from other entities | Helpers |
 | `write_dashboard` | Change what is on a dashboard, or the dashboard itself | Dashboards |
 | `manage_config_entry` | Reload, enable, disable, rename or delete an integration entry | Integration entries |
 

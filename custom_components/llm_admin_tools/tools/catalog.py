@@ -20,6 +20,7 @@ from .services import FindServicesTool
 from .system import GetSystemInfoTool
 from .traces import GetAutomationTraceTool
 from .write_base import WriteTool
+from .write_computed_helpers import WriteComputedHelperTool
 from .write_config_entries import ManageConfigEntryTool
 from .write_dashboards import WriteDashboardTool
 from .write_definitions import WriteDefinitionTool
@@ -64,6 +65,7 @@ WRITE_TOOL_CLASSES: tuple[type[WriteTool], ...] = (
     UpdateDeviceTool,
     WriteRegistryItemTool,
     WriteHelperTool,
+    WriteComputedHelperTool,
     WriteDashboardTool,
     ManageConfigEntryTool,
 )
