@@ -16,6 +16,7 @@ from ..const import DOMAIN, LOGGER
 from ..errors import read_failed
 from ..models import RuntimeData
 from ..policy.access import async_require_admin
+from ..policy.credential_states import credential_values
 from ..policy.exposure import ExposurePolicy
 from ..policy.limits import MAX_RESULT_CHARACTERS
 from ..serialization import to_json_safe
@@ -119,10 +120,15 @@ class BaseTool(llm.Tool):
             await async_require_admin(hass, llm_context)
             self._require_current(hass)
             self._runtime.audit.require_capacity()
+            # Whatever a result or an error then quotes, these are not among it.
+            self._runtime.redactor.set_live_values(credential_values(hass))
             # Home Assistant passes the arguments on without validating them.
             args = self.parameters(tool_input.tool_args)
             reason = self._stated_reason(args)
+            before = credential_values(hass)
             data = await self.async_perform(hass, args, llm_context)
+            # A call can have set one, and its result then gives the old and the new.
+            self._runtime.redactor.set_live_values(before | credential_values(hass))
             result = await hass.async_add_executor_job(self._prepare_result, data, args)
             success = True
             return llm.ToolResult(data=result)

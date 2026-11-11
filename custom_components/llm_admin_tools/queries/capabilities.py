@@ -50,7 +50,9 @@ _WITHHELD_MEANS = {
     "network details": (
         "Private IP addresses, MAC addresses, network names and host names"
     ),
-    "values in esphome/secrets.yaml": "Each value from that file",
+    "values in esphome/secrets.yaml": (
+        "Each value of 6 or more characters from that file"
+    ),
     "rules set by the owner": (
         "Key names and text the owner chose, which this report does not name"
     ),
@@ -134,6 +136,7 @@ def write_capabilities(
         "subjects": sorted(settings.subjects),
         "delete_allowed": settings.allow_delete,
         "templates_allowed": templates_allowed,
+        "custom_cards_allowed": settings.allow_custom_cards,
         "allowed_services": sorted(settings.allowed_services),
         "allowed_services_mean": (
             _SERVICES_ALLOWED if settings.allowed_services else NO_SERVICES_ALLOWED

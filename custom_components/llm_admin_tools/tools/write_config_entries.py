@@ -31,7 +31,7 @@ class ManageConfigEntryTool(WriteTool):
         "pref_disable_polling in fields. delete and disable report in affects which "
         "entities and devices go and what uses them; use dry_run to see that first. "
         "Setting up new integrations is not possible, and neither is changing LLM "
-        "Admin Tools or the MCP server."
+        "Admin Tools, the MCP server or the Model Context Protocol integration."
     )
     subjects = ("config_entries",)
     parameters = probatio.Schema(

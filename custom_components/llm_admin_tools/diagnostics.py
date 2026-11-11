@@ -31,6 +31,7 @@ async def async_get_config_entry_diagnostics(
             "subjects": sorted(writes.subjects),
             "allow_delete": writes.allow_delete,
             "allow_templates": writes.allow_templates,
+            "allow_custom_cards": writes.allow_custom_cards,
             "allowed_services": sorted(writes.allowed_services),
             "protected_areas": len(writes.protected_areas),
             "protected_domains": len(writes.protected_domains),

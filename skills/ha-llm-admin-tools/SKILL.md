@@ -73,3 +73,5 @@ hidden or protected, say so openly. Do not quietly carry on, or use what you saw
 - Automations and scripts run later with all rights, so they may only use what `writes`
   allows. Templates are refused unless `writes.templates_allowed` is true. Even then, never
   write one to read something that is withheld.
+- A dashboard cannot hold anything of a type that starts with `custom:` unless
+  `writes.custom_cards_allowed` is true.

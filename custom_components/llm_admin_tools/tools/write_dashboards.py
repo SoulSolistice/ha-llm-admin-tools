@@ -39,7 +39,8 @@ class WriteDashboardTool(WriteTool):
         "Dashboard resources cannot be changed, and neither can YAML dashboards. A "
         "dashboard cannot link to anything outside Home Assistant, buttons can only "
         "call what call_service can, and it cannot hold templates unless "
-        "get_capabilities says writes.templates_allowed."
+        "get_capabilities says writes.templates_allowed, or anything of a type that "
+        "starts with custom: unless it says writes.custom_cards_allowed."
     )
     subjects = ("dashboards",)
     parameters = probatio.Schema(

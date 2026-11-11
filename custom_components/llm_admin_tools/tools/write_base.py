@@ -72,7 +72,10 @@ def _holds_redacted_value(value: Any) -> bool:
     if isinstance(value, str):
         return REDACTED in value
     if isinstance(value, Mapping):
-        return any(_holds_redacted_value(item) for item in value.values())
+        # Redaction scrubs keys as well, so one can come back as the marker too.
+        return any(
+            _holds_redacted_value(item) for pair in value.items() for item in pair
+        )
     if isinstance(value, list):
         return any(_holds_redacted_value(item) for item in value)
     return False

@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from ..errors import invalid_input
 from ..models import RuntimeData
+from ..policy.credential_states import require_history_readable
 from ..policy.limits import (
     DEFAULT_EXTENDED_HISTORY_POINTS,
     MAX_EXTENDED_HISTORY_POINTS,
@@ -115,6 +116,7 @@ class GetExtendedHistoryTool(ReadOnlyTool):
     ) -> Mapping[str, Any]:
         """Return the history of the entity."""
         entity_id = require_valid_entity_id(args["entity_id"])
+        require_history_readable(hass, self.exposure, entity_id)
         start = parse_time(args["start"])
         end = _resolve_end(args, start)
         async with self._one_at_a_time:

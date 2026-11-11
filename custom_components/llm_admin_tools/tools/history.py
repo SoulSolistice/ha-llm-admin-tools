@@ -11,6 +11,7 @@ from homeassistant.util import dt as dt_util
 
 from ..errors import invalid_input
 from ..models import RuntimeData
+from ..policy.credential_states import require_history_readable
 from ..policy.limits import (
     DEFAULT_HISTORY_WINDOW,
     HISTORY_WINDOW_SLACK,
@@ -98,6 +99,7 @@ class GetEntityHistoryTool(ReadOnlyTool):
         """Return the history per entity."""
         for entity_id in args["entity_ids"]:
             require_valid_entity_id(entity_id)
+            require_history_readable(hass, self.exposure, entity_id)
         start, end = _resolve_window(args)
         return {
             "start": start,

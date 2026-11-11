@@ -25,6 +25,7 @@ from ..const import (
     CONF_REDACT_NETWORK,
     CONF_REDACT_PERSONAL,
     CONF_SCRUB_ESPHOME_SECRETS,
+    CONF_WRITE_ALLOW_CUSTOM_CARDS,
     CONF_WRITE_ALLOW_DELETE,
     CONF_WRITE_ALLOW_TEMPLATES,
     CONF_WRITE_SUBJECTS,
@@ -100,6 +101,8 @@ class WriteSettings:
     subjects: frozenset[str] = frozenset()
     allow_delete: bool = False
     allow_templates: bool = False
+    # Custom cards run their own code in the browser of whoever opens a dashboard.
+    allow_custom_cards: bool = False
     # A domain such as light, or one service such as light.turn_on.
     allowed_services: frozenset[str] = frozenset()
 
@@ -120,6 +123,7 @@ class WriteSettings:
             subjects=texts(CONF_WRITE_SUBJECTS),
             allow_delete=options.get(CONF_WRITE_ALLOW_DELETE, False),
             allow_templates=options.get(CONF_WRITE_ALLOW_TEMPLATES, False),
+            allow_custom_cards=options.get(CONF_WRITE_ALLOW_CUSTOM_CARDS, False),
             allowed_services=frozenset(
                 entry.strip().lower()
                 for entry in options.get(CONF_ALLOWED_SERVICES, ())

@@ -9,8 +9,8 @@ from enum import Enum, auto
 import re
 from typing import Any
 
-from homeassistant.core import callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.core import callback, valid_entity_id
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.template import is_template_string
 
 from ..errors import invalid_input
@@ -28,6 +28,10 @@ _EXCLUDE_KEY = "exclude"
 _GROUP_TARGET_KEYS = ("area_id", "floor_id", "label_id")
 # In entities, a mapping is a scene: a state for each entity.
 _ENTITY_KEYS = ("entity_id", "entities", "snapshot_entities")
+# A trigger or condition can also compare with another entity, or happen when one says.
+_COMPARED_KEYS = ("above", "after", "at", "before", "below", "zone")
+# The state to compare with can be that of an input helper, and is a text otherwise.
+_COMPARED_STATE_KEY = "state"
 _READING_KEYS = frozenset(
     {
         "condition",
@@ -43,6 +47,8 @@ _READING_KEYS = frozenset(
 # Core renders these whole, so a template in them can come to name any target.
 _RENDERED_WHOLE_KEYS = ("data", "data_template", "target")
 _DASHBOARD_SERVICE_KEYS = ("perform_action", "service")
+# How a dashboard names a card, badge, feature or strategy that is not built in.
+_CUSTOM_TYPE = "custom:"
 # A browser skips these in an address, and reads a backslash as a slash.
 _DASHBOARD_IGNORED_TEXT = re.compile(r"[\x00-\x1f\x7f]")
 # What makes a browser reach outside when someone opens a dashboard, what spells that in
@@ -201,6 +207,8 @@ class _Guard:
                 self._check_entity_field(value, part)
         for value in _names_in(node.get("device_id")):
             self._check_device(value, part)
+        if part is _Part.READING:
+            self._check_compared(node)
         if (
             part is not _Part.READING
             and self._policy.restricted
@@ -208,6 +216,27 @@ class _Guard:
         ):
             # Who is in a group is only known when it runs.
             raise invalid_input("group_target_refused")
+
+    def _check_compared(self, node: Mapping[str, Any]) -> None:
+        """Check the entities a trigger or condition compares with or waits for.
+
+        Such as above: sensor.limit or at: input_datetime.wake_up. They are read just
+        like the entity under entity_id, so one that is hidden would show in whether
+        the automation runs.
+        """
+        names = [
+            value
+            for key in _COMPARED_KEYS
+            for value in _names_in(node.get(key))
+            if valid_entity_id(value.strip().lower())
+        ]
+        names += [
+            value
+            for value in _names_in(node.get(_COMPARED_STATE_KEY))
+            if cv.INPUT_ENTITY_ID.match(value)
+        ]
+        for name in names:
+            self._check_entity(name, _Part.READING)
 
     def _refuse_template_if_restricted(self, value: str) -> bool:
         """Return if a field is a template, which allows it only if nothing is limited.
@@ -274,6 +303,7 @@ class _DashboardGuard:
             for item in node:
                 self.walk(item)
         elif isinstance(node, Mapping):
+            self._check_type(node)
             self._check_action(node)
             for key, value in node.items():
                 self.walk(key)
@@ -281,10 +311,20 @@ class _DashboardGuard:
         elif isinstance(node, str):
             self._check_text(node)
 
+    def _check_type(self, node: Mapping[str, Any]) -> None:
+        """Check that what a part of a dashboard is shown by is built in."""
+        kind = node.get("type")
+        if isinstance(kind, str) and (
+            _DASHBOARD_IGNORED_TEXT.sub("", kind)
+            .strip()
+            .lower()
+            .startswith(_CUSTOM_TYPE)
+        ):
+            self._policy.require_custom_cards()
+
     def _check_text(self, text: str) -> None:
         """Check a text, which may be shown as a link or an image, or be rendered."""
-        as_read = _DASHBOARD_IGNORED_TEXT.sub("", text).replace("\\", "/")
-        if _DASHBOARD_REFUSED_TEXT.search(as_read):
+        if reaches_outside(text):
             raise invalid_input("dashboard_link_refused")
         if is_template_string(text):
             self._policy.require_templates()
@@ -300,6 +340,12 @@ class _DashboardGuard:
             self._actions.check_service(service)
         if services:
             self._actions.walk(node, _Part.DATA)
+
+
+def reaches_outside(text: str) -> bool:
+    """Return if a browser shown this text as an address would leave Home Assistant."""
+    as_read = _DASHBOARD_IGNORED_TEXT.sub("", text).replace("\\", "/")
+    return _DASHBOARD_REFUSED_TEXT.search(as_read) is not None
 
 
 @callback

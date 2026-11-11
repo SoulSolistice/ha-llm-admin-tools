@@ -66,8 +66,21 @@ _CREDENTIAL_KEYS = _KeyNames(
 )
 _LOCATION_KEYS = _KeyNames(
     words=frozenset(
-        {"altitude", "elevation", "gps", "lat", "latitude", "lng", "lon", "longitude"}
+        {
+            "altitude",
+            "coordinate",
+            "coordinates",
+            "elevation",
+            "gps",
+            "lat",
+            "latitude",
+            "lng",
+            "lon",
+            "longitude",
+        }
     ),
+    # As the apps for phones name the coordinates of where a phone is.
+    exact=frozenset({"location"}),
 )
 _PERSONAL_KEYS = _KeyNames(
     words=frozenset({"email", "emails", "username"}),
@@ -197,10 +210,9 @@ class Redactor:
         """Initialize with the exact values that must never leave and the settings."""
         secrets = set(secret_values)
         self.secret_value_count = len(secrets)
-        # Longest first, so a text containing another is removed whole.
-        self._literals = sorted(
-            secrets | settings.extra_redacted_text, key=len, reverse=True
-        )
+        self._fixed_literals = frozenset(secrets | settings.extra_redacted_text)
+        self._literals: tuple[str, ...] = ()
+        self.set_live_values(())
         self._personal = settings.redact_personal
         self._network = settings.redact_network
         self._key_categories = [_CREDENTIAL_KEYS]
@@ -212,6 +224,18 @@ class Redactor:
             self._key_categories.append(_NETWORK_KEYS)
         self._extra_keys = frozenset(
             _normalize_key(key) for key in settings.extra_redacted_keys
+        )
+
+    def set_live_values(self, values: Iterable[str]) -> None:
+        """Replace the values that are withheld for what they are right now.
+
+        Such as the state of a text entity that holds a password, which changes. The
+        list is replaced whole, so that text being scrubbed elsewhere sees one or the
+        other.
+        """
+        # Longest first, so a text containing another is removed whole.
+        self._literals = tuple(
+            sorted(self._fixed_literals | set(values), key=len, reverse=True)
         )
 
     def is_sensitive_key(self, key: str) -> bool:

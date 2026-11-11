@@ -44,6 +44,9 @@
     "dashboard_config_required": {
       "message": "save_config needs a config."
     },
+    "custom_card_refused": {
+      "message": "A dashboard written by a client cannot hold anything of a type that starts with custom: such a card is code that runs in the browser of whoever opens the dashboard. Only the owner can allow them, in the settings of this integration."
+    },
     "dashboard_link_refused": {
       "message": "A dashboard cannot link to anything outside Home Assistant, or hold what runs in the browser: it could send what it shows to the outside when someone opens it."
     },
@@ -110,6 +113,9 @@
     "helper_not_found": {
       "message": "Helper {item_id} was not found."
     },
+    "history_withheld": {
+      "message": "The state of {entity_id} is a password or the like, so its history is withheld."
+    },
     "in_use_by_protected": {
       "message": "This is in use by something that cannot be changed, so it cannot be changed or deleted either."
     },
@@ -130,6 +136,9 @@
     },
     "nothing_saved": {
       "message": "Home Assistant has no saved configuration for this. Either it does not exist, or, for a dashboard, it is generated automatically."
+    },
+    "picture_link_refused": {
+      "message": "The picture of a person must be within Home Assistant, such as /local/name.jpg: every browser that shows the person would load it from outside."
     },
     "person_user_refused": {
       "message": "A client cannot link a person to a user account."
@@ -307,6 +316,7 @@
           "protected_entities": "Protect entities",
           "protected_integrations": "Protect integrations",
           "protected_labels": "Protect labels",
+          "write_allow_custom_cards": "Allow custom cards on dashboards (read the warning)",
           "write_allow_delete": "Allow deleting",
           "write_allow_templates": "Allow templates (read the warning)",
           "write_subjects": "What can be changed"
@@ -316,8 +326,9 @@
           "protected_areas": "A client can see these and what is in them, but not change them.",
           "protected_domains": "A client can see the entities of these domains, but not change them.",
           "protected_entities": "A client can see these entities, but not change them.",
-          "protected_integrations": "A client can see these and what they provide, but not change them. This integration and the MCP server can never be changed.",
+          "protected_integrations": "A client can see these and what they provide, but not change them. This integration, the MCP server and the Model Context Protocol integration can never be changed.",
           "protected_labels": "A client can see what has these labels, but not change it.",
+          "write_allow_custom_cards": "Warning: a custom card is code that runs in the browser of whoever opens the dashboard, with that person's access, and some run text from their configuration as JavaScript. With this on, a client that is allowed to change dashboards can place such cards, and what they then do cannot be checked. Without it, a client cannot save a dashboard that holds one, including one you placed there yourself.",
           "write_allow_delete": "Without this, a client can create and change things, but deleting is refused everywhere.",
           "write_allow_templates": "Warning: a template can read anything in Home Assistant, including the values withheld under Redaction, and a client can then read the result back from a trace or a state. With this on, redaction no longer protects what a client wants to get at. It has no effect while anything is hidden: templates stay refused then.",
           "write_subjects": "Nothing can be changed until you select something here. Each choice adds tools for clients."

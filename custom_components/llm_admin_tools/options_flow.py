@@ -49,6 +49,7 @@ from .const import (
     CONF_REDACT_NETWORK,
     CONF_REDACT_PERSONAL,
     CONF_SCRUB_ESPHOME_SECRETS,
+    CONF_WRITE_ALLOW_CUSTOM_CARDS,
     CONF_WRITE_ALLOW_DELETE,
     CONF_WRITE_ALLOW_TEMPLATES,
     CONF_WRITE_SUBJECTS,
@@ -331,6 +332,9 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
             ): BooleanSelector(),
             probatio.Optional(
                 CONF_WRITE_ALLOW_TEMPLATES, default=False
+            ): BooleanSelector(),
+            probatio.Optional(
+                CONF_WRITE_ALLOW_CUSTOM_CARDS, default=False
             ): BooleanSelector(),
             _list_field(CONF_ALLOWED_SERVICES): SelectSelector(
                 SelectSelectorConfig(

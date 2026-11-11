@@ -4,7 +4,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.const import ATTR_DEVICE_CLASS, ATTR_UNIT_OF_MEASUREMENT
+from homeassistant.const import (
+    ATTR_DEVICE_CLASS,
+    ATTR_ENTITY_ID,
+    ATTR_UNIT_OF_MEASUREMENT,
+)
 from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers import entity_registry as er
 
@@ -153,11 +157,29 @@ def get_entity(
     return {
         "entity_id": entity_id,
         "state": state.state if state is not None else None,
-        "attributes": dict(state.attributes) if state is not None else {},
+        "attributes": _visible_attributes(policy, state) if state is not None else {},
         "last_changed": state.last_changed if state is not None else None,
         "last_updated": state.last_updated if state is not None else None,
         "registry": _registry_summary(hass, entry) if entry is not None else None,
     }
+
+
+def _visible_attributes(policy: ExposurePolicy, state: State) -> dict[str, Any]:
+    """Return the attributes of a state, without the hidden entities it stands for.
+
+    A group lists its members, as do light groups and the like.
+    """
+    attributes = dict(state.attributes)
+    members = attributes.get(ATTR_ENTITY_ID)
+    if isinstance(members, str) and not policy.entity_allowed(members):
+        del attributes[ATTR_ENTITY_ID]
+    elif isinstance(members, list | tuple | set | frozenset):
+        attributes[ATTR_ENTITY_ID] = [
+            member
+            for member in members
+            if not isinstance(member, str) or policy.entity_allowed(member)
+        ]
+    return attributes
 
 
 def _registry_summary(hass: HomeAssistant, entry: er.RegistryEntry) -> dict[str, Any]:

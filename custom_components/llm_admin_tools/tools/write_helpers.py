@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
 from ..errors import invalid_input
+from ..policy.definition_guard import reaches_outside
 from ..queries.helpers import async_read_helpers, helper_entity_id
 from .helpers import HELPER_KIND
 from .params import TEXT
@@ -32,7 +33,8 @@ class WriteHelperTool(WriteTool):
         "helper, person, schedule, tag, timer or zone. fields are those the UI offers "
         "for it, as list_helpers shows them. When changing one, state all of them. To "
         "set its value, call its service afterwards, such as input_number.set_value. "
-        "A person cannot be linked to a user account. list_helpers withholds the ID of "
+        "A person cannot be linked to a user account, and its picture must be within "
+        "Home Assistant. list_helpers withholds the ID of "
         "a tag, so only one whose ID you know can be changed."
     )
     subjects = ("helpers", "persons")
@@ -94,6 +96,11 @@ class WriteHelperTool(WriteTool):
         fields: dict[str, Any] = dict(args.get("fields", {}))
         if "user_id" in fields:
             raise invalid_input("person_user_refused")
+        # A dashboard that shows the person has every browser load it.
+        if isinstance(picture := fields.get("picture"), str) and reaches_outside(
+            picture
+        ):
+            raise invalid_input("picture_link_refused")
         user_id = llm_context.context.user_id if llm_context.context else None
         before = None
         target = ""

@@ -58,7 +58,7 @@ ALL_SERVICES = "*"
 # These hold too much of everything to allow at once, so each service is named.
 NAMED_SERVICES_ONLY_DOMAINS = frozenset({"hassio", "homeassistant"})
 # A client must not be able to change, or get rid of, what limits it.
-NEVER_CONFIG_ENTRY_DOMAINS = frozenset({"llm_admin_tools", "mcp_server"})
+NEVER_CONFIG_ENTRY_DOMAINS = frozenset({"llm_admin_tools", "mcp", "mcp_server"})
 # Each script also has a service of its own; these are the ones of the domain.
 _SCRIPT_DOMAIN_SERVICES = frozenset({"reload", "toggle", "turn_off", "turn_on"})
 NEVER_TOUCHED = (
@@ -146,6 +146,16 @@ class WritePolicy:
             raise invalid_input("template_refused")
         if not self.settings.allow_templates:
             raise invalid_input("templates_off")
+
+    def require_custom_cards(self) -> None:
+        """Raise unless a dashboard a client writes may hold custom cards.
+
+        A custom card is code of its own that runs in the browser of whoever opens the
+        dashboard, with that person's access. What it makes of its configuration cannot
+        be known here: some run it as JavaScript.
+        """
+        if not self.settings.allow_custom_cards:
+            raise invalid_input("custom_card_refused")
 
     def subject_enabled(self, subject: str) -> bool:
         """Return if the owner lets clients change this kind of thing."""

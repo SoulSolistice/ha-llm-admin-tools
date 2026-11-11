@@ -128,13 +128,14 @@ Under **Redaction**. Credentials are always withheld; there is no setting to tur
 This covers values under names such as `password`, `token` or `api_key`; URL passwords,
 `?token=`, bearer and basic credentials, cookies, and whatever follows a name like
 `access_token` or `x-api-key`; and every string of 6 or more characters that appears as a
-value in `secrets.yaml`. Config entry data and options are never read, and neither are
+value in `secrets.yaml`. The state of a text entity or text helper in password mode is
+withheld wherever it appears, and its history cannot be read. Config entry data and options are never read, and neither are
 serial numbers, the configuration path or the host's user name. These settings withhold
 more:
 
 | Setting | Default | What it withholds |
 | --- | --- | --- |
-| Withhold location | On | Coordinates and altitude |
+| Withhold location | On | Coordinates and altitude, also under the names `location` and `coordinates` |
 | Withhold personal details | On | Email addresses, user names, phone numbers and public IP addresses |
 | Withhold network details | Off | Private IP addresses, MAC addresses, network names and host names, which often help when diagnosing problems |
 | Also withhold values from ESPHome's secrets file | On | Values in `esphome/secrets.yaml` |
@@ -211,6 +212,7 @@ Under **Changes**. Nothing can be changed until you choose something here.
 | What can be changed | Nothing | Services, automations, scripts, scenes, entities, devices, areas, floors, labels, categories, helpers, persons, dashboards, integration entries. Each adds tools for clients. |
 | Allow deleting | Off | Without this, deleting is refused everywhere. |
 | Allow templates | Off | See [templates](#templates). |
+| Allow custom cards on dashboards | Off | See [dashboards](#dashboards). |
 | Allowed services | None | `light` allows all services of the domain, `light.turn_on` only that one. `*` allows every domain's services, but still not `homeassistant`, `hassio` or those that are never allowed. |
 | Protect domains, entities, areas, labels, integrations | None | A client can see these and what is in them, but not change them. |
 
@@ -238,14 +240,30 @@ deeply nested, and for every way of naming a target:
   template, and so is a blueprint, because what they would do cannot be checked.
 - Every entity and device it acts on must be one the client may change, and every one it
   reads in a trigger or condition, or leaves out of a target with `exclude` (from 2026.11),
-  must be one the client may see.
+  must be one the client may see. That includes an entity a trigger or condition compares
+  with or waits for, as in `above: sensor.limit` or `at: input_datetime.wake_up`.
 - If anything is hidden or protected, areas, floors, labels and templated targets are
   refused, because what they reach is only known when they run.
 
+<a name="dashboards"></a>
+
 **Dashboards** run in the browser of whoever opens them, with that person's access. So a
 dashboard cannot link to or load anything from outside Home Assistant, including images, and
-cannot hold code that runs in the browser, like `[[[ ]]]` in some custom cards. Its buttons
-can only call services you allow, on what is not protected.
+its buttons can only call services you allow, on what is not protected. The picture of a
+person is held to the same rule.
+
+Anything on a dashboard of a type that starts with `custom:` is refused unless you turn on
+**Allow custom cards on dashboards**: cards, badges, features and strategies.
+
+> [!WARNING]
+> **A custom card is code that runs in the browser**, and what it does with its
+> configuration cannot be checked here. Some run text from it as JavaScript, such as
+> `${ }` in config-template-card or `[[[ ]]]` in button-card. Such code can read what the
+> person looking at the dashboard can, and put together an outside address from parts that
+> are not recognizable on their own. `[[[ ]]]` stays refused either way.
+>
+> While this is off, a client cannot save a dashboard that holds a custom card, including
+> one you placed there yourself, because saving replaces the whole dashboard.
 
 ### Templates
 
@@ -481,6 +499,11 @@ administrator, and an administrator can do all of the above.
   host name, and `list_devices` shows that name as it is.
 - A version number with four parts can look like a public IP address, and is then withheld
   along with personal details.
+- A password held as a state is recognized by the entity being in password mode right now.
+  One of a single character is not withheld, and neither is an earlier one that an older
+  trace or log record still holds. While the entity is unavailable, its history can be read.
+- With **Withhold location** on, anything under a key named `location` is withheld, also
+  where it is the place of a calendar event and no coordinates.
 - `list_helpers` withholds tag IDs, because anyone who knows one can act as if the tag had
   been scanned. A client can only change a tag whose ID it already knows.
 
@@ -493,6 +516,8 @@ administrator, and an administrator can do all of the above.
   integration hides the records of all its entries, and of the libraries its manifest names,
   even where another integration uses the same library. A library the manifest does not name
   is not hidden; hide it by name.
+- `get_entity` leaves hidden entities out of the members a group lists. Other attributes
+  that name entities are shown as they are.
 - A repair is left out when its details name a hidden entity by ID. A repair that describes
   it in other words is kept.
 - A log is plain text, so `get_full_log` treats a message that imitates the start of a
