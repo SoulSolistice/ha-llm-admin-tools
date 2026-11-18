@@ -351,7 +351,7 @@
           "passthrough_read_only": "Pass on only tools that declare they cannot change anything. A tool that declares nothing counts as one that can.",
           "passthrough_tools": "Single tools, as they are offered now. A tool marked as able to change things can do so without a reason or a dry run."
         },
-        "description": "Other integrations can offer tools to LLM clients too, such as Assist or a Model Context Protocol server you connected. Those selected here are offered with the tools of this integration, to administrators only, and get its redaction, size limit, call rate and record of calls. What Scope hides, and what Changes protects or allows, does not apply to them: each works as its own integration has it. Nothing is passed on until you select something here.",
+        "description": "Other integrations can offer tools to LLM clients too, such as Assist or a Model Context Protocol server you connected. Those selected here are offered with the tools of this integration, to administrators only, and get its redaction, size limit, call rate and record of calls. What Scope hides, and what Changes protects or allows, does not apply to them: each works as its own integration has it. This is meant for a client that gets only the tools of this integration: if the MCP server serves all LLM APIs, or the API a tool comes from, that tool is offered twice, once without any of this. Nothing is passed on until you select something here.",
         "title": "Tools of other integrations"
       }
     }

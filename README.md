@@ -420,10 +420,16 @@ settings, you can pass some of them on with the tools here, so that a client con
   Assist's includes the names and states of exposed entities.
 
 A tool passed on keeps its name, unless one of the tools here or of another API has it. It
-then gets the ID of its API in front, as when Home Assistant merges APIs: Assist's
-`intent__HassTurnOn` stays as it is, while a `get_entity` of another API becomes
-`my_api__get_entity`. It is offered to administrators only, and its calls get redaction,
-the size limit, the call rate and the record of calls, as all calls here do.
+then gets `from_` and the ID of its API in front: Assist's `intent__HassTurnOn` stays as it
+is, while a `get_entity` of another API becomes `from_my_api__get_entity`. That differs from
+how Home Assistant names tools when it merges APIs, so that both can be served together. It
+is offered to administrators only, and its calls get redaction, the size limit, the call
+rate and the record of calls, as all calls here do.
+
+This is meant for a client that gets only the tools of this integration. If the MCP server
+or a conversation agent is also given the API a tool comes from, such as with **All LLM
+APIs**, that tool is offered twice: once passed on here, and once as its own integration
+has it, without any of this.
 
 **What Scope hides and what Changes protects or allows does not apply to them.** Each works
 as its own integration has it: Assist switches whatever is exposed to it, and a tool that

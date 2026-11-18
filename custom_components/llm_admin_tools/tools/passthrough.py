@@ -28,6 +28,7 @@ RESERVED_NAMES = frozenset(
         *(tool.name for tool in (*READ_TOOL_CLASSES, *TOOL_CLASSES_FOR_CHANGES)),
     }
 )
+RENAMED_PREFIX = "from_"
 
 # The assistant the MCP server asks as.
 _ASSISTANT = "conversation"
@@ -167,7 +168,10 @@ async def async_passed_on(
             hass, llm_context, settings.wants_api
         )
     ]
-    # As Home Assistant does when it merges APIs, a name used twice gets the API.
+    # A name used twice gets the API. Not as Home Assistant does when it merges APIs:
+    # merged with the API passed on, the two would give a tool the same name, and Home
+    # Assistant refuses the merge. It names by the API's id, or its name before
+    # 2026.11, slugified without an underscore, so what precedes __ here has one.
     counts = Counter(tool.name for _, tools in chosen for tool in tools)
     taken = set(RESERVED_NAMES)
     if settings.prompts:
@@ -178,7 +182,7 @@ async def async_passed_on(
         for tool in tools:
             name = tool.name
             if name in taken or counts[name] > 1:
-                name = f"{slugify(api.id)}__{tool.name}"
+                name = f"{RENAMED_PREFIX}{slugify(api.id)}__{tool.name}"
             if name in taken:
                 LOGGER.warning(
                     "Tool %s of LLM API %s is not passed on: its name is taken",

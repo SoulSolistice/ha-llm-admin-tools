@@ -197,7 +197,7 @@ async def test_all_tools_of_an_api_that_read(
     await apply_options(hass, init_integration, **{CONF_PASSTHROUGH_APIS: ["fake"]})
     instance = await _instance(hass, admin_context)
     passed = _passed(instance)
-    assert set(passed) == {"peek", "fake__get_entity"}
+    assert set(passed) == {"peek", "from_fake__get_entity"}
     assert {tool.name for tool in instance.tools} == _OWN | set(passed)
     peek = passed["peek"]
     assert peek.api_name == "Fake API"
@@ -207,9 +207,9 @@ async def test_all_tools_of_an_api_that_read(
     assert peek.annotations.read_only
     assert peek.integration == "fake_domain"
     # A tool that names no integration is served by this one.
-    assert passed["fake__get_entity"].integration == DOMAIN
+    assert passed["from_fake__get_entity"].integration == DOMAIN
     assert (
-        "The tools peek, fake__get_entity come from other integrations"
+        "The tools peek, from_fake__get_entity come from other integrations"
         in instance.api_prompt
     )
     assert "Instructions from" not in instance.api_prompt
@@ -228,7 +228,7 @@ async def test_tools_that_change_things_once_allowed(
         **{CONF_PASSTHROUGH_APIS: ["fake"], CONF_PASSTHROUGH_READ_ONLY: False},
     )
     passed = _passed(await _instance(hass, admin_context))
-    assert set(passed) == {"peek", "poke", "fake__get_entity"}
+    assert set(passed) == {"peek", "poke", "from_fake__get_entity"}
     assert not passed["poke"].annotations.read_only
 
 
@@ -271,10 +271,10 @@ async def test_call_is_passed_on_and_redacted(
     last = init_integration.runtime_data.audit.as_diagnostics()[-1]
     assert last == {"timestamp": last["timestamp"], "tool": "peek", "success": True}
 
-    await call_tool("fake__get_entity", reason="  to check\nthis ")
+    await call_tool("from_fake__get_entity", reason="  to check\nthis ")
     assert _tool(fake_api, "get_entity").calls[-1].tool_name == "get_entity"
     last = init_integration.runtime_data.audit.as_diagnostics()[-1]
-    assert last["tool"] == "fake__get_entity"
+    assert last["tool"] == "from_fake__get_entity"
     assert last["reason"] == "to check this"
 
 
@@ -390,13 +390,13 @@ async def test_name_used_twice_gets_the_api(
     admin_context: llm.LLMContext,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """As when Home Assistant merges APIs; a name still taken then is left out."""
+    """A name used twice gets the API; a name still taken then is left out."""
     first = FakeAPI(
         hass=hass,
         id="first",
         name="First",
         tools=[
-            FakeTool("first__same", read_only=True),
+            FakeTool("from_first__same", read_only=True),
             FakeTool("same", read_only=True),
         ],
     )
@@ -408,9 +408,29 @@ async def test_name_used_twice_gets_the_api(
             hass, init_integration, **{CONF_PASSTHROUGH_APIS: ["first", "second"]}
         )
         passed = _passed(await _instance(hass, admin_context))
-    assert set(passed) == {"first__same", "second__same"}
-    assert passed["first__same"].tool is first.tools[0]
+    assert set(passed) == {"from_first__same", "from_second__same"}
+    assert passed["from_first__same"].tool is first.tools[0]
     assert "Tool same of LLM API first is not passed on" in caplog.text
+
+
+@pytest.mark.parametrize("api_name", ["fake", "Fake API"])
+async def test_merged_with_the_api_it_passes_on(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    fake_api: FakeAPI,
+    admin_context: llm.LLMContext,
+    api_name: str,
+) -> None:
+    """As the MCP server serves all APIs: no name may clash with those it gives.
+
+    Home Assistant names a tool used twice after the id of its API from 2026.11,
+    and after the name before that.
+    """
+    fake_api.name = api_name
+    await apply_options(hass, init_integration, **{CONF_PASSTHROUGH_APIS: ["fake"]})
+    merged = await llm.async_get_api(hass, [DOMAIN, "fake"], admin_context)
+    names = [tool.name for tool in merged.tools]
+    assert len(names) == len(set(names))
 
 
 async def test_instructions_are_passed_on_redacted(
@@ -436,7 +456,7 @@ async def test_instructions_are_passed_on_redacted(
         )
         prompt = (await _instance(hass, admin_context)).api_prompt
     assert (
-        'Instructions from "Fake API" for peek, poke, fake__get_entity '
+        'Instructions from "Fake API" for peek, poke, from_fake__get_entity '
         f"(there get_entity):\nMind the code {REDACTED}."
     ) in prompt
     assert SECRET_VALUE not in prompt
@@ -501,7 +521,11 @@ async def test_capabilities_list_what_is_passed_on(
     assert report["other_tools"]["passed_on"] == [
         {"name": "peek", "from": "Fake API", "can_change_things": False},
         {"name": "poke", "from": "Fake API", "can_change_things": True},
-        {"name": "fake__get_entity", "from": "Fake API", "can_change_things": False},
+        {
+            "name": "from_fake__get_entity",
+            "from": "Fake API",
+            "can_change_things": False,
+        },
     ]
     assert "redaction" in report["other_tools"]["rules"]
     report = (await call_tool("get_capabilities", sections=["writes"])).data
