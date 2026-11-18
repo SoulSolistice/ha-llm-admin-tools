@@ -326,6 +326,8 @@ their schema, permission checks and logic. The list of commands that can be run 
 Every tool call takes the same path through `tools/base.py`, and no tool can skip it: the
 admin check, validation against the tool's schema with bounds on every value, redaction, a
 size limit on the result (which fails rather than truncating), and a record of the call.
+[Tools of other integrations](#tools-of-other-integrations) take the same path, except that
+their arguments are left to the tool, as Home Assistant does.
 Read tools cannot change anything, and are marked read-only for the client. Tools that
 change things are marked as destructive, and `call_service` also as one that can reach
 outside Home Assistant, as a notification does.
@@ -401,6 +403,35 @@ registries, so it also covers an integration that failed to start.
 | `list_integrations`, `get_system_info` | `config__get_config_entries`, `system_health__get_system_info` | Here held to what you hide and withhold. |
 | `list_entities`, `list_devices`, `list_areas` | `search__search` | Here states, attributes and details, filtered. There IDs and names of what matches, with nothing hidden. |
 
+### Tools of other integrations
+
+Other integrations offer tools to LLM clients too, such as Assist, Spook or a remote server
+connected through the Model Context Protocol integration. Under **Other tools** in the
+settings, you can pass some of them on with the tools here, so that a client connected to
+`/api/mcp/llm_admin_tools` needs nothing else. Nothing is passed on until you choose:
+
+- **Pass on all tools of** an API: every tool it offers, including ones it adds later. Which
+  tools that is can depend on the request, such as the entities exposed to Assist.
+- **Pass on these tools**: single tools, as they are offered when you open the settings. A
+  choice whose integration is not loaded at the moment is kept.
+- **Only tools that read**, on by default: only tools that declare they cannot change
+  anything are passed on. A tool that declares nothing counts as one that can.
+- **Pass on their instructions**: what each of those APIs tells a client about its tools.
+  Assist's includes the names and states of exposed entities.
+
+A tool passed on keeps its name, unless one of the tools here or of another API has it. It
+then gets the ID of its API in front, as when Home Assistant merges APIs: Assist's
+`intent__HassTurnOn` stays as it is, while a `get_entity` of another API becomes
+`my_api__get_entity`. It is offered to administrators only, and its calls get redaction,
+the size limit, the call rate and the record of calls, as all calls here do.
+
+**What Scope hides and what Changes protects or allows does not apply to them.** Each works
+as its own integration has it: Assist switches whatever is exposed to it, and a tool that
+changes things needs no reason and has no `dry_run`, unless it has its own.
+`get_capabilities` lists them under `other_tools`, with which of them can change things.
+Its own tools never come back to it as passed on, even through an API that passes this
+one on.
+
 ### Spook, if you have it
 
 [Spook](https://spook.boo) is not required for anything here. If you have it, a client gets
@@ -443,7 +474,7 @@ anything here; it would simply use another door:
 | `/api/mcp/homeassistant` (from 2026.11) | Any template and any action, and the tools other integrations add to it, such as those of Spook that fix or ignore what it found. Served to any administrator, whatever is selected in the options of the MCP server, and its read-only option does not apply. |
 | `/api/mcp` | The LLM APIs selected in the options of the MCP server. **Expose all AI tools** is on for a new setup. |
 | `/api/mcp/assist` | Reads and controls what is exposed under **Voice assistants**. An exposed entity you hide or protect here is still listed and switched. It is open to any user. |
-| Other LLM APIs | Whatever they offer, such as those of KNX or custom integrations. |
+| Other LLM APIs | Whatever they offer, such as those of KNX or custom integrations. The same holds for those you [pass on](#tools-of-other-integrations) through this integration. |
 | The Model Context Protocol integration | The tools of the remote servers it connects to, which can do anything those servers can. |
 | The [debug console](https://www.home-assistant.io/integrations/debug_console) (from 2026.11) | Any Python code inside Home Assistant, with access to everything, if `debug_console:` is in `configuration.yaml`. It is for administrators. |
 | Other tools of your client | Other MCP servers, a shell, or access to files. These may also reach the token. |
@@ -704,6 +735,7 @@ The code is split by purpose, and each layer only uses the layers below it:
 | `policy/` | Who may call, what is hidden, withheld or protected, how much is returned |
 | `core_commands.py` | Running Home Assistant's own commands, from a fixed list |
 | `options_flow.py` | The settings menu |
+| `tools/passthrough.py` | Tools of other LLM APIs, gathered for each request and passed on |
 | `audit.py`, `journal.py`, `serialization.py`, `shortening.py`, `errors.py` | Single-purpose helpers |
 
 To add a tool, write a query, subclass `ReadOnlyTool` and list the class in

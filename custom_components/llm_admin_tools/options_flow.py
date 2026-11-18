@@ -40,6 +40,10 @@ from .const import (
     CONF_EXCLUDED_LOGGERS,
     CONF_EXTRA_REDACTED_KEYS,
     CONF_EXTRA_REDACTED_TEXT,
+    CONF_PASSTHROUGH_APIS,
+    CONF_PASSTHROUGH_PROMPTS,
+    CONF_PASSTHROUGH_READ_ONLY,
+    CONF_PASSTHROUGH_TOOLS,
     CONF_PROTECTED_AREAS,
     CONF_PROTECTED_DOMAINS,
     CONF_PROTECTED_ENTITIES,
@@ -56,10 +60,12 @@ from .const import (
 )
 from .policy.limits import MIN_WITHHELD_TEXT_LENGTH
 from .policy.settings import (
+    DEFAULT_PASSTHROUGH_READ_ONLY,
     DEFAULT_REDACT_LOCATION,
     DEFAULT_REDACT_NETWORK,
     DEFAULT_REDACT_PERSONAL,
     DEFAULT_SCRUB_ESPHOME_SECRETS,
+    passthrough_choice,
 )
 from .policy.writes import (
     ALL_SERVICES,
@@ -69,6 +75,7 @@ from .policy.writes import (
 )
 from .tools import TOOL_CLASSES
 from .tools.catalog import WRITE_TOOL_CLASSES
+from .tools.passthrough import async_offered_elsewhere
 
 _ALL_TOOL_NAMES = [tool_class.name for tool_class in TOOL_CLASSES]
 _WRITE_TOOL_NAMES = {tool_class.name for tool_class in WRITE_TOOL_CLASSES}
@@ -114,7 +121,7 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Offer the kinds of settings."""
-        menu_options = ["tools", "scope", "redaction", "writes"]
+        menu_options = ["tools", "other_tools", "scope", "redaction", "writes"]
         if self.config_entry.state is ConfigEntryState.LOADED:
             menu_options.append("recent_activity")
         return self.async_show_menu(step_id="init", menu_options=menu_options)
@@ -378,3 +385,79 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
             ),
         }
         return self._async_show_step("writes", schema, user_input, errors)
+
+    async def async_step_other_tools(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Choose which tools of other LLM APIs are passed on; none until chosen."""
+        offered = await async_offered_elsewhere(self.hass)
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input[CONF_PASSTHROUGH_READ_ONLY] and any(
+                passthrough_choice(api.id, tool.name)
+                in user_input[CONF_PASSTHROUGH_TOOLS]
+                and not tool.annotations.read_only
+                for api, tools in offered
+                for tool in tools
+            ):
+                errors[CONF_PASSTHROUGH_TOOLS] = "passthrough_not_read_only"
+            else:
+                return self._async_save(user_input)
+
+        options = self.config_entry.options
+        apis = [
+            SelectOptionDict(value=api.id, label=f"{api.name} ({api.id})")
+            for api, _ in offered
+        ]
+        tools = [
+            SelectOptionDict(
+                value=passthrough_choice(api.id, tool.name),
+                label=f"{api.name}: {tool.name}"
+                + ("" if tool.annotations.read_only else " (can change things)"),
+            )
+            for api, api_tools in offered
+            for tool in api_tools
+        ]
+        schema = {
+            _list_field(CONF_PASSTHROUGH_APIS): SelectSelector(
+                SelectSelectorConfig(
+                    options=_with_saved(apis, options.get(CONF_PASSTHROUGH_APIS, [])),
+                    multiple=True,
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+            _list_field(CONF_PASSTHROUGH_TOOLS): SelectSelector(
+                SelectSelectorConfig(
+                    options=_with_saved(tools, options.get(CONF_PASSTHROUGH_TOOLS, [])),
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                    sort=True,
+                )
+            ),
+            probatio.Optional(
+                CONF_PASSTHROUGH_READ_ONLY, default=DEFAULT_PASSTHROUGH_READ_ONLY
+            ): BooleanSelector(),
+            probatio.Optional(
+                CONF_PASSTHROUGH_PROMPTS, default=False
+            ): BooleanSelector(),
+        }
+        return self._async_show_step("other_tools", schema, user_input, errors)
+
+
+def _with_saved(
+    offered: list[SelectOptionDict], saved: Iterable[str]
+) -> list[SelectOptionDict]:
+    """Return the options, and any saved one that is not offered now.
+
+    A saved value missing from the options would make the form refuse to save. An
+    API or tool can be away for a while, such as one of an integration not loaded.
+    """
+    known = {option["value"] for option in offered}
+    return [
+        *offered,
+        *(
+            SelectOptionDict(value=value, label=value)
+            for value in saved
+            if value not in known
+        ),
+    ]

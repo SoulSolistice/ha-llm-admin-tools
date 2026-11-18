@@ -10,6 +10,7 @@ from .journal import WriteJournal
 from .policy.exposure import ExposurePolicy
 from .policy.redaction import Redactor
 from .policy.secret_values import SecretFile
+from .policy.settings import PassthroughSettings
 from .policy.writes import WritePolicy
 
 
@@ -24,6 +25,7 @@ class RuntimeData:
     writes: WritePolicy
     journal: WriteJournal
     definitions: DefinitionEditor
+    passthrough: PassthroughSettings
 
 
 type LlmAdminToolsConfigEntry = ConfigEntry[RuntimeData]

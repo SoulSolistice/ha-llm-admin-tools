@@ -10,6 +10,7 @@ from .const import DOMAIN, LLM_API_NAME
 from .models import RuntimeData
 from .policy.access import async_is_admin
 from .tools import build_tools
+from .tools.passthrough import PassedOn, async_passed_on
 
 _READ_ONLY = "They only read and cannot change anything."
 _CAN_WRITE = (
@@ -29,6 +30,30 @@ _API_PROMPT = (
     "time, which tool to use for what, which of them work right now, what is "
     "restricted, and what can be requested beyond the usual limits."
 )
+_PASSED_ON = (
+    " The tools {names} come from other integrations and are passed on as they are: "
+    "what this integration hides, protects or allows does not apply to them. Their "
+    "results are redacted all the same. get_capabilities says which of them can "
+    "change things."
+)
+_FOREIGN_PROMPT = '\n\nInstructions from "{api}" for {names}:\n{prompt}'
+
+
+def _passed_on_prompt(passed: PassedOn) -> str:
+    """Return what the API prompt says about the tools passed on from other APIs."""
+    if not passed.tools:
+        return ""
+    text = _PASSED_ON.format(names=", ".join(tool.name for tool in passed.tools))
+    for api_name, tools, prompt in passed.prompts:
+        # Its instructions name a tool by what that API calls it.
+        names = ", ".join(
+            tool.name
+            if tool.name == tool.tool.name
+            else f"{tool.name} (there {tool.tool.name})"
+            for tool in tools
+        )
+        text += _FOREIGN_PROMPT.format(api=api_name, names=names, prompt=prompt)
+    return text
 
 
 @dataclass(kw_only=True)
@@ -41,7 +66,10 @@ class LlmAdminToolsAPI(llm.API):
     _tools: list[llm.Tool] = field(init=False)
 
     def __post_init__(self) -> None:
-        """Build the tools once; nothing about them depends on the request."""
+        """Build the integration's own tools once; they do not depend on the request.
+
+        Those passed on from other APIs do, and are gathered for each one.
+        """
         self._tools = build_tools(self.runtime)
 
     @override
@@ -57,15 +85,20 @@ class LlmAdminToolsAPI(llm.API):
         does not guard a tool kept from before, which also refuses once the settings
         it was built with have been replaced.
         """
-        is_admin = await async_is_admin(self.hass, llm_context)
+        if not await async_is_admin(self.hass, llm_context):
+            return llm.APIInstance(
+                api=self, api_prompt="", llm_context=llm_context, tools=[]
+            )
+        passed = await async_passed_on(self.hass, self.runtime, llm_context)
         prompt = _API_PROMPT.format(
             writes=_CAN_WRITE if self.runtime.writes.settings.subjects else _READ_ONLY
         )
         return llm.APIInstance(
             api=self,
-            api_prompt=prompt if is_admin else "",
+            api_prompt=prompt + _passed_on_prompt(passed),
             llm_context=llm_context,
-            tools=self._tools if is_admin else [],
+            tools=[*self._tools, *passed.tools],
+            custom_serializer=passed.custom_serializer(),
         )
 
 

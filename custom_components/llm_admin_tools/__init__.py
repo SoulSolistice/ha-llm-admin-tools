@@ -12,7 +12,7 @@ from .models import LlmAdminToolsConfigEntry, RuntimeData
 from .policy.exposure import ExposurePolicy
 from .policy.redaction import Redactor
 from .policy.secret_values import async_load_secret_files
-from .policy.settings import ExposureSettings, WriteSettings
+from .policy.settings import ExposureSettings, PassthroughSettings, WriteSettings
 from .policy.writes import WritePolicy
 
 
@@ -45,6 +45,7 @@ async def async_setup_entry(
         writes=WritePolicy(hass, exposure, WriteSettings.from_options(entry.options)),
         journal=journal,
         definitions=DefinitionEditor(hass),
+        passthrough=PassthroughSettings.from_options(entry.options),
     )
     entry.async_on_unload(async_register_llm_api(hass, entry.runtime_data))
     return True

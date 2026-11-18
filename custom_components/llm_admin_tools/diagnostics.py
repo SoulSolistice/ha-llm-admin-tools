@@ -53,6 +53,12 @@ async def async_get_config_entry_diagnostics(
             "extra_redacted_keys": len(settings.extra_redacted_keys),
             "extra_redacted_text": len(settings.extra_redacted_text),
         },
+        "passthrough": {
+            "apis": sorted(runtime.passthrough.apis),
+            "tools": sorted(runtime.passthrough.tools),
+            "read_only": runtime.passthrough.read_only,
+            "prompts": runtime.passthrough.prompts,
+        },
         "recent_calls": runtime.audit.as_diagnostics(),
         "recent_writes": runtime.journal.recent(),
     }

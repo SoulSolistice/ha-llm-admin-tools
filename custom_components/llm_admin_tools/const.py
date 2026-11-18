@@ -37,3 +37,8 @@ CONF_WRITE_ALLOW_CUSTOM_CARDS = "write_allow_custom_cards"
 CONF_WRITE_ALLOW_DELETE = "write_allow_delete"
 CONF_WRITE_ALLOW_TEMPLATES = "write_allow_templates"
 CONF_WRITE_SUBJECTS = "write_subjects"
+
+CONF_PASSTHROUGH_APIS = "passthrough_apis"
+CONF_PASSTHROUGH_PROMPTS = "passthrough_prompts"
+CONF_PASSTHROUGH_READ_ONLY = "passthrough_read_only"
+CONF_PASSTHROUGH_TOOLS = "passthrough_tools"

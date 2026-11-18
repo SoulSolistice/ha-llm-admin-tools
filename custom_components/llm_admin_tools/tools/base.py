@@ -26,11 +26,11 @@ READ_ONLY_ANNOTATIONS = llm.ToolAnnotations(
 )
 
 
-class BaseTool(llm.Tool):
-    """A tool; subclasses state its interface and what it does.
+class GuardedTool(llm.Tool):
+    """A tool this integration serves, its own or one passed on from another API.
 
-    ``async_call`` is final so that no tool can skip the admin check, argument
-    validation, redaction, the size limit or the audit record.
+    ``async_call`` is final so that no tool can skip the admin check, redaction, the
+    size limit or the audit record.
     """
 
     integration = DOMAIN
@@ -40,28 +40,15 @@ class BaseTool(llm.Tool):
         """Initialize the tool."""
         self._runtime = runtime
 
-    @property
-    def exposure(self) -> ExposurePolicy:
-        """Return what the settings let this tool show."""
-        return self._runtime.exposure
-
-    @classmethod
-    def unavailable_because(
-        cls, hass: HomeAssistant, runtime: RuntimeData
-    ) -> str | None:
-        """Return why this cannot work right now, for get_capabilities to say."""
-        return None
-
-    @classmethod
-    def limited_because(cls, runtime: RuntimeData) -> str | None:
-        """Return what this cannot do right now, for get_capabilities to say."""
-        return None
+    @abstractmethod
+    def _arguments(self, tool_args: dict[str, Any]) -> Mapping[str, Any]:
+        """Return the arguments to answer with."""
 
     @abstractmethod
-    async def async_perform(
+    async def _async_answer(
         self, hass: HomeAssistant, args: Mapping[str, Any], llm_context: llm.LLMContext
-    ) -> Mapping[str, Any]:
-        """Return the data for validated arguments."""
+    ) -> tuple[Mapping[str, Any], bool]:
+        """Return the data for the arguments, and whether it reports a failure."""
 
     def reduce_result(
         self, result: dict[str, Any], args: Mapping[str, Any]
@@ -87,10 +74,13 @@ class BaseTool(llm.Tool):
 
     @final
     def _stated_reason(self, args: Mapping[str, Any]) -> str | None:
-        """Return the reason a client gave, on one line and with credentials removed."""
-        if "reason" not in args:
+        """Return the reason a client gave, on one line and with credentials removed.
+
+        A tool passed on gets its arguments unchecked, so one there may be anything.
+        """
+        if not isinstance(reason := args.get("reason"), str):
             return None
-        return self._runtime.redactor.scrub_text(" ".join(args["reason"].split()))
+        return self._runtime.redactor.scrub_text(" ".join(reason.split()))
 
     @final
     def _require_current(self, hass: HomeAssistant) -> None:
@@ -113,7 +103,7 @@ class BaseTool(llm.Tool):
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
     ) -> llm.ToolResult:
-        """Check access and arguments, perform, and return the redacted result."""
+        """Check access and arguments, answer, and return the redacted result."""
         success = False
         reason: str | None = None
         try:
@@ -122,16 +112,15 @@ class BaseTool(llm.Tool):
             self._runtime.audit.require_capacity()
             # Whatever a result or an error then quotes, these are not among it.
             self._runtime.redactor.set_live_values(credential_values(hass))
-            # Home Assistant passes the arguments on without validating them.
-            args = self.parameters(tool_input.tool_args)
+            args = self._arguments(tool_input.tool_args)
             reason = self._stated_reason(args)
             before = credential_values(hass)
-            data = await self.async_perform(hass, args, llm_context)
+            data, failed = await self._async_answer(hass, args, llm_context)
             # A call can have set one, and its result then gives the old and the new.
             self._runtime.redactor.set_live_values(before | credential_values(hass))
             result = await hass.async_add_executor_job(self._prepare_result, data, args)
-            success = True
-            return llm.ToolResult(data=result)
+            success = not failed
+            return llm.ToolResult(data=result, error=failed)
         except (HomeAssistantError, probatio.Invalid) as err:
             # These say why a call failed, which a client needs, but can quote anything.
             message = str(err)
@@ -150,6 +139,52 @@ class BaseTool(llm.Tool):
         finally:
             user_id = llm_context.context.user_id if llm_context.context else None
             self._runtime.audit.record(self.name, user_id, success, reason)
+
+
+class BaseTool(GuardedTool):
+    """A tool of this integration; subclasses state its interface and what it does.
+
+    Its arguments are always validated, which no subclass can change.
+    """
+
+    @property
+    def exposure(self) -> ExposurePolicy:
+        """Return what the settings let this tool show."""
+        return self._runtime.exposure
+
+    @classmethod
+    def unavailable_because(
+        cls, hass: HomeAssistant, runtime: RuntimeData
+    ) -> str | None:
+        """Return why this cannot work right now, for get_capabilities to say."""
+        return None
+
+    @classmethod
+    def limited_because(cls, runtime: RuntimeData) -> str | None:
+        """Return what this cannot do right now, for get_capabilities to say."""
+        return None
+
+    @abstractmethod
+    async def async_perform(
+        self, hass: HomeAssistant, args: Mapping[str, Any], llm_context: llm.LLMContext
+    ) -> Mapping[str, Any]:
+        """Return the data for validated arguments."""
+
+    @final
+    @override
+    def _arguments(self, tool_args: dict[str, Any]) -> Mapping[str, Any]:
+        """Return the validated arguments."""
+        # Home Assistant passes the arguments on without validating them.
+        args: Mapping[str, Any] = self.parameters(tool_args)
+        return args
+
+    @final
+    @override
+    async def _async_answer(
+        self, hass: HomeAssistant, args: Mapping[str, Any], llm_context: llm.LLMContext
+    ) -> tuple[Mapping[str, Any], bool]:
+        """Perform; a failure of this integration's own tools is always raised."""
+        return await self.async_perform(hass, args, llm_context), False
 
 
 class ReadOnlyTool(BaseTool):

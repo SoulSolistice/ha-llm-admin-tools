@@ -73,6 +73,7 @@ async def test_menu(hass: HomeAssistant, init_integration: MockConfigEntry) -> N
     assert result["type"] is FlowResultType.MENU
     assert result["menu_options"] == [
         "tools",
+        "other_tools",
         "scope",
         "redaction",
         "writes",

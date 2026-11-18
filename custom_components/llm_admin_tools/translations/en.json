@@ -240,6 +240,7 @@
   "options": {
     "error": {
       "no_tools_selected": "Select at least one tool. To stop serving tools altogether, disable the integration.",
+      "passthrough_not_read_only": "One of the tools you selected can change things. Select only tools that read, or turn off Only tools that read.",
       "service_not_possible": "One of these can never be allowed, or names a whole domain where each service must be named. See the description of this field.",
       "withheld_text_too_short": "Each text to withhold needs at least 2 characters, as a shorter one would be removed from everything."
     },
@@ -247,6 +248,7 @@
       "init": {
         "description": "Credentials are always withheld and cannot be turned off. Changes apply as soon as you save them. Clients keep showing the tools they listed before until they reconnect, but a turned off tool can no longer be called.",
         "menu_options": {
+          "other_tools": "Other tools: which tools of other integrations are passed on",
           "recent_activity": "Recent activity: what clients changed, and why",
           "redaction": "Redaction: which values are withheld",
           "scope": "Scope: which entities, devices, integrations and logs are visible",
@@ -335,6 +337,22 @@
         },
         "description": "Clients can only read until you allow something here. A client cannot change these settings. Every change needs a reason and is recorded under recent activity.",
         "title": "Changes"
+      },
+      "other_tools": {
+        "data": {
+          "passthrough_apis": "Pass on all tools of",
+          "passthrough_prompts": "Pass on their instructions",
+          "passthrough_read_only": "Only tools that read",
+          "passthrough_tools": "Pass on these tools"
+        },
+        "data_description": {
+          "passthrough_apis": "Every tool these offer, including tools they add later. Which tools that is can depend on the request, such as the entities exposed to Assist.",
+          "passthrough_prompts": "Add what each of these integrations tells a client about its tools. Assist's includes the names and states of exposed entities, redacted like any result.",
+          "passthrough_read_only": "Pass on only tools that declare they cannot change anything. A tool that declares nothing counts as one that can.",
+          "passthrough_tools": "Single tools, as they are offered now. A tool marked as able to change things can do so without a reason or a dry run."
+        },
+        "description": "Other integrations can offer tools to LLM clients too, such as Assist or a Model Context Protocol server you connected. Those selected here are offered with the tools of this integration, to administrators only, and get its redaction, size limit, call rate and record of calls. What Scope hides, and what Changes protects or allows, does not apply to them: each works as its own integration has it. Nothing is passed on until you select something here.",
+        "title": "Tools of other integrations"
       }
     }
   },

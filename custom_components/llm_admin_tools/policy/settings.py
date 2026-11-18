@@ -16,6 +16,10 @@ from ..const import (
     CONF_EXCLUDED_LOGGERS,
     CONF_EXTRA_REDACTED_KEYS,
     CONF_EXTRA_REDACTED_TEXT,
+    CONF_PASSTHROUGH_APIS,
+    CONF_PASSTHROUGH_PROMPTS,
+    CONF_PASSTHROUGH_READ_ONLY,
+    CONF_PASSTHROUGH_TOOLS,
     CONF_PROTECTED_AREAS,
     CONF_PROTECTED_DOMAINS,
     CONF_PROTECTED_ENTITIES,
@@ -36,6 +40,9 @@ DEFAULT_REDACT_LOCATION = True
 DEFAULT_REDACT_NETWORK = False
 DEFAULT_REDACT_PERSONAL = True
 DEFAULT_SCRUB_ESPHOME_SECRETS = True
+DEFAULT_PASSTHROUGH_READ_ONLY = True
+# Separates the API from the tool in a saved choice; a tool name cannot hold one.
+PASSTHROUGH_SEPARATOR = "/"
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -148,3 +155,52 @@ class WriteSettings:
             excluded_integrations=self.protected_integrations,
             excluded_labels=self.protected_labels,
         )
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class PassthroughSettings:
+    """Which tools of other LLM APIs are passed on; none until the owner chooses."""
+
+    # Every tool of these, including those they add later.
+    apis: frozenset[str] = frozenset()
+    # One tool each, saved as the API, PASSTHROUGH_SEPARATOR and the tool's name.
+    tools: frozenset[str] = frozenset()
+    # Only tools that declare they cannot change anything.
+    read_only: bool = DEFAULT_PASSTHROUGH_READ_ONLY
+    # Pass on the instructions of each API that tools are passed on from.
+    prompts: bool = False
+
+    @classmethod
+    def from_options(cls, options: Mapping[str, Any]) -> PassthroughSettings:
+        """Return the settings stored in config entry options."""
+        return cls(
+            apis=frozenset(options.get(CONF_PASSTHROUGH_APIS, ())),
+            tools=frozenset(options.get(CONF_PASSTHROUGH_TOOLS, ())),
+            read_only=options.get(
+                CONF_PASSTHROUGH_READ_ONLY, DEFAULT_PASSTHROUGH_READ_ONLY
+            ),
+            prompts=options.get(CONF_PASSTHROUGH_PROMPTS, False),
+        )
+
+    @property
+    def enabled(self) -> bool:
+        """Return whether anything is to be passed on."""
+        return bool(self.apis or self.tools)
+
+    def wants_api(self, api_id: str) -> bool:
+        """Return whether any tool of this API may be passed on."""
+        return api_id in self.apis or any(
+            choice.rpartition(PASSTHROUGH_SEPARATOR)[0] == api_id
+            for choice in self.tools
+        )
+
+    def wants_tool(self, api_id: str, name: str, *, read_only: bool) -> bool:
+        """Return whether this tool of this API is passed on."""
+        if self.read_only and not read_only:
+            return False
+        return api_id in self.apis or passthrough_choice(api_id, name) in self.tools
+
+
+def passthrough_choice(api_id: str, name: str) -> str:
+    """Return how the choice of one tool of an API is saved."""
+    return f"{api_id}{PASSTHROUGH_SEPARATOR}{name}"

@@ -6,6 +6,7 @@ from typing import Any, override
 import probatio
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import llm
 from homeassistant.util import dt as dt_util
 
 from ..policy.limits import (
@@ -28,12 +29,13 @@ from ..queries.capabilities import (
     write_capabilities,
 )
 from ..queries.repairs import spook_active
-from .base import ReadOnlyTool
+from .base import READ_ONLY_ANNOTATIONS, BaseTool
 from .catalog import READ_TOOL_CLASSES, TOOL_CLASSES_FOR_CHANGES
 from .extended_history import GetExtendedHistoryTool, extended_history_offer
 from .full_log import GetFullLogTool, full_log_offer
 from .guide import task_guide
 from .params import DATA_NOTICE
+from .passthrough import CAPABILITIES_TOOL_NAME, async_passed_on
 
 _REPOSITORY = "https://github.com/SoulSolistice/ha-llm-admin-tools"
 _ISSUES = f"{_REPOSITORY}/issues"
@@ -44,9 +46,16 @@ _CAN_WRITE = (
     "given the tools it names, the server you use offers only those that read, such "
     "as the MCP server with Read-only on: do not look for another way to change it."
 )
+_PASSED_ON = (
+    "These come from other integrations and are passed on as they are. What scope, "
+    "writes and the settings of this integration hide, protect or allow does not "
+    "apply to them, and start_here does not cover them. Only redaction, the limit on "
+    "result size, the call rate and the record of calls do. One that can change "
+    "things needs no reason and has no dry_run, unless it says otherwise."
+)
 _NOTES = (
-    "Neither this report nor its restrictions cover other tools your client offers, "
-    "which may change things.",
+    "Apart from other_tools, neither this report nor its restrictions cover other "
+    "tools your client offers, which may change things.",
     DATA_NOTICE,
     f"A value shown as {REDACTED} was withheld on purpose. Do not try to recover it.",
     "Something missing from a result may be hidden or may not exist, and this report "
@@ -73,15 +82,16 @@ _SECTIONS = (
     "data_sources",
     "limits",
     "on_request",
+    "other_tools",
 )
 # What a part of the report would be misread without.
 _ALWAYS = ("current_time", "notes")
 
 
-class GetCapabilitiesTool(ReadOnlyTool):
+class GetCapabilitiesTool(BaseTool):
     """Report the tools, restrictions and limits that apply to a client."""
 
-    name = "get_capabilities"
+    name = CAPABILITIES_TOOL_NAME
     title = "Get capabilities"
     description = (
         "Report the current time, what the tools of LLM Admin Tools can do and what "
@@ -89,9 +99,10 @@ class GetCapabilitiesTool(ReadOnlyTool):
         "which values are withheld, what can be read at the moment, the limits on "
         "results, and what can be requested beyond them. Call this first: start_here "
         "says which tool to use for what, and tools says which of them work right "
-        "now. It names nothing that is hidden, and says nothing about other tools "
-        "your client offers. To check again after the owner changed a setting, ask "
-        f"for only the sections you need, such as writes. {DATA_NOTICE}"
+        "now. It names nothing that is hidden. Of other tools your client offers, it "
+        "covers only those passed on through this integration. To check again after "
+        "the owner changed a setting, ask for only the sections you need, such as "
+        f"writes. {DATA_NOTICE}"
     )
     parameters = probatio.Schema(
         {
@@ -102,12 +113,28 @@ class GetCapabilitiesTool(ReadOnlyTool):
         }
     )
 
+    # It reads, but the tools passed on depend on who asks.
+    annotations = READ_ONLY_ANNOTATIONS
+
     @override
-    async def async_read(
-        self, hass: HomeAssistant, args: Mapping[str, Any]
+    async def async_perform(
+        self, hass: HomeAssistant, args: Mapping[str, Any], llm_context: llm.LLMContext
     ) -> Mapping[str, Any]:
         """Return the report, or the parts of it asked for."""
         report = self._report(hass)
+        if "sections" not in args or "other_tools" in args["sections"]:
+            passed = await async_passed_on(hass, self._runtime, llm_context)
+            report["other_tools"] = {
+                "passed_on": [
+                    {
+                        "name": tool.name,
+                        "from": tool.api_name,
+                        "can_change_things": not tool.annotations.read_only,
+                    }
+                    for tool in passed.tools
+                ],
+                **({"rules": _PASSED_ON} if passed.tools else {}),
+            }
         if "sections" not in args:
             return report
         return {
