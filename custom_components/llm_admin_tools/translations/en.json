@@ -241,6 +241,7 @@
     "error": {
       "no_tools_selected": "Select at least one tool. To stop serving tools altogether, disable the integration.",
       "passthrough_not_read_only": "One of the tools you selected can change things. Select only tools that read, or turn off Only tools that read.",
+      "passthrough_passes_nothing": "Nothing of {passes_nothing} would be passed on now: none of its tools declares that it only reads. Unselect it, or turn off Only tools that read.",
       "service_not_possible": "One of these can never be allowed, or names a whole domain where each service must be named. See the description of this field.",
       "withheld_text_too_short": "Each text to withhold needs at least 2 characters, as a shorter one would be removed from everything."
     },
@@ -346,7 +347,7 @@
           "passthrough_tools": "Pass on these tools"
         },
         "data_description": {
-          "passthrough_apis": "Every tool these offer, including tools they add later. Which tools that is can depend on the request, such as the entities exposed to Assist.",
+          "passthrough_apis": "Every tool these offer, including tools they add later. Which tools that is can depend on the request, such as the entities exposed to Assist. Home Assistant's own APIs hold the tools of many integrations, such as Spook, and each of those can be chosen on its own.",
           "passthrough_prompts": "Add what each of these integrations tells a client about its tools. Assist's includes the names and states of exposed entities, redacted like any result.",
           "passthrough_read_only": "Pass on only tools that declare they cannot change anything. A tool that declares nothing counts as one that can.",
           "passthrough_tools": "Single tools, as they are offered now. A tool marked as able to change things can do so without a reason or a dry run."

@@ -544,6 +544,7 @@ async def test_diagnostics_show_the_choice(
     data = await async_get_config_entry_diagnostics(hass, init_integration)
     assert data["passthrough"] == {
         "apis": ["a", "b"],
+        "integrations": [],
         "tools": ["c/x"],
         "read_only": True,
         "prompts": False,
@@ -565,8 +566,67 @@ def test_settings_start_with_nothing() -> None:
     chosen = PassthroughSettings.from_options({CONF_PASSTHROUGH_TOOLS: ["a/b/c"]})
     assert chosen.wants_api("a/b")
     assert not chosen.wants_api("a")
-    assert chosen.wants_tool("a/b", "c", read_only=True)
-    assert not chosen.wants_tool("a/b", "c", read_only=False)
+    assert chosen.wants_tool("a/b", "c", integration=None, read_only=True)
+    assert not chosen.wants_tool("a/b", "c", integration=None, read_only=False)
+
+
+def test_settings_tell_an_api_from_an_integration_in_it() -> None:
+    """Both are chosen in one field; a tool that names no integration is in none."""
+    chosen = PassthroughSettings.from_options({CONF_PASSTHROUGH_APIS: ["x", "y/z"]})
+    assert chosen.enabled
+    assert chosen.apis == {"x"}
+    assert chosen.integrations == {"y/z"}
+    assert chosen.wants_api("y")
+    assert chosen.wants_tool("y", "z__t", integration="z", read_only=True)
+    assert not chosen.wants_tool("y", "z__t", integration=None, read_only=True)
+    assert not chosen.wants_tool("y", "w__t", integration="w", read_only=True)
+
+
+@pytest.fixture
+def shared_api(hass: HomeAssistant) -> Generator[FakeAPI]:
+    """Register an API holding the tools of several integrations, as Home Assistant's.
+
+    Spook is not installed, so it has no name but its domain.
+    """
+    api = FakeAPI(
+        hass=hass,
+        id="shared",
+        name="Shared",
+        tools=[
+            FakeTool("spook__look", read_only=True, integration="spook"),
+            FakeTool("spook__fix", integration="spook"),
+            FakeTool("history__get", read_only=True, integration="history"),
+            FakeTool("other__write", integration="other"),
+            FakeTool("untagged", read_only=True),
+        ],
+    )
+    with _registered(hass, api):
+        yield api
+
+
+@pytest.mark.parametrize(
+    ("read_only", "expected"),
+    [(True, {"spook__look"}), (False, {"spook__look", "spook__fix"})],
+)
+async def test_all_tools_one_integration_gives_an_api(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    shared_api: FakeAPI,
+    admin_context: llm.LLMContext,
+    *,
+    read_only: bool,
+    expected: set[str],
+) -> None:
+    """Spook's tools, without those of the other integrations in the same API."""
+    await apply_options(
+        hass,
+        init_integration,
+        **{
+            CONF_PASSTHROUGH_APIS: ["shared/spook"],
+            CONF_PASSTHROUGH_READ_ONLY: read_only,
+        },
+    )
+    assert set(_passed(await _instance(hass, admin_context))) == expected
 
 
 async def _open_other_tools(hass: HomeAssistant, entry: MockConfigEntry) -> FlowResult:
@@ -600,6 +660,61 @@ async def test_form_offers_the_other_apis_and_their_tools(
         {"value": "fake/poke", "label": "Fake API: poke (can change things)"},
         {"value": "fake/get_entity", "label": "Fake API: get_entity"},
     ]
+
+
+async def test_form_offers_each_integration_of_a_shared_api(
+    hass: HomeAssistant, init_integration: MockConfigEntry, shared_api: FakeAPI
+) -> None:
+    """Only an API with the tools of several integrations offers them one by one."""
+    result = await _open_other_tools(hass, init_integration)
+    assert _options(result, CONF_PASSTHROUGH_APIS) == [
+        {"value": "shared", "label": "Shared (shared)"},
+        {"value": "shared/history", "label": "Shared, only History (shared/history)"},
+        {"value": "shared/other", "label": "Shared, only other (shared/other)"},
+        {"value": "shared/spook", "label": "Shared, only spook (shared/spook)"},
+    ]
+
+
+async def test_form_refuses_what_would_pass_on_nothing(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    shared_api: FakeAPI,
+    admin_context: llm.LLMContext,
+) -> None:
+    """As a server whose tools all declare nothing, while only tools that read may be.
+
+    An API offering no tools at the moment may do so later, so it is not refused.
+    """
+    remote = FakeAPI(hass=hass, id="remote", name="Remote", tools=[FakeTool("w")])
+    empty = FakeAPI(hass=hass, id="empty", name="Empty")
+    user_input = {
+        CONF_PASSTHROUGH_APIS: ["remote", "empty", "shared/other", "shared/spook"],
+        CONF_PASSTHROUGH_TOOLS: [],
+        CONF_PASSTHROUGH_READ_ONLY: True,
+        CONF_PASSTHROUGH_PROMPTS: False,
+    }
+    with _registered(hass, remote), _registered(hass, empty):
+        result = await _open_other_tools(hass, init_integration)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input
+        )
+        assert result["errors"] == {CONF_PASSTHROUGH_APIS: "passthrough_passes_nothing"}
+        assert result["description_placeholders"] == {
+            "passes_nothing": "Shared, only other, Remote"
+        }
+
+        user_input[CONF_PASSTHROUGH_READ_ONLY] = False
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input
+        )
+        await hass.async_block_till_done()
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert set(_passed(await _instance(hass, admin_context))) == {
+            "w",
+            "other__write",
+            "spook__look",
+            "spook__fix",
+        }
 
 
 async def test_form_saves_and_applies(

@@ -160,7 +160,10 @@ async def async_passed_on(
                 for tool in instance.tools
                 if not _served_here(tool)
                 and settings.wants_tool(
-                    instance.api.id, tool.name, read_only=tool.annotations.read_only
+                    instance.api.id,
+                    tool.name,
+                    integration=tool.integration,
+                    read_only=tool.annotations.read_only,
                 )
             ],
         )

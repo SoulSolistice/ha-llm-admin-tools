@@ -411,11 +411,17 @@ settings, you can pass some of them on with the tools here, so that a client con
 `/api/mcp/llm_admin_tools` needs nothing else. Nothing is passed on until you choose:
 
 - **Pass on all tools of** an API: every tool it offers, including ones it adds later. Which
-  tools that is can depend on the request, such as the entities exposed to Assist.
+  tools that is can depend on the request, such as the entities exposed to Assist. From
+  2026.11 the integrations of Home Assistant, and some others such as Spook, give their
+  tools to its two shared APIs, Device control and Home Assistant, instead of an API of
+  their own. All tools one of them gives an API can be chosen too, such as
+  **Home Assistant, only Spook**.
 - **Pass on these tools**: single tools, as they are offered when you open the settings. A
   choice whose integration is not loaded at the moment is kept.
 - **Only tools that read**, on by default: only tools that declare they cannot change
-  anything are passed on. A tool that declares nothing counts as one that can.
+  anything are passed on. A tool that declares nothing counts as one that can. The settings
+  refuse a choice that would then pass on nothing at all, as with a Model Context Protocol
+  server whose tools declare nothing.
 - **Pass on their instructions**: what each of those APIs tells a client about its tools.
   Assist's includes the names and states of exposed entities.
 
@@ -429,7 +435,9 @@ rate and the record of calls, as all calls here do.
 This is meant for a client that gets only the tools of this integration. If the MCP server
 or a conversation agent is also given the API a tool comes from, such as with **All LLM
 APIs**, that tool is offered twice: once passed on here, and once as its own integration
-has it, without any of this.
+has it, without any of this. From 2026.11 Home Assistant then names both after their API, so
+`spook__list_ghosts` becomes `llm-admin-tools__spook__list_ghosts` and
+`homeassistant__spook__list_ghosts` for every client of that server.
 
 **What Scope hides and what Changes protects or allows does not apply to them.** Each works
 as its own integration has it: Assist switches whatever is exposed to it, and a tool that

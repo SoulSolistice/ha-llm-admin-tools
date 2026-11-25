@@ -55,6 +55,7 @@ async def async_get_config_entry_diagnostics(
         },
         "passthrough": {
             "apis": sorted(runtime.passthrough.apis),
+            "integrations": sorted(runtime.passthrough.integrations),
             "tools": sorted(runtime.passthrough.tools),
             "read_only": runtime.passthrough.read_only,
             "prompts": runtime.passthrough.prompts,

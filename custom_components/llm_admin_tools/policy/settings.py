@@ -163,6 +163,9 @@ class PassthroughSettings:
 
     # Every tool of these, including those they add later.
     apis: frozenset[str] = frozenset()
+    # Every tool one integration gives an API that holds those of several, such as
+    # Home Assistant's own, saved as the API, PASSTHROUGH_SEPARATOR and the domain.
+    integrations: frozenset[str] = frozenset()
     # One tool each, saved as the API, PASSTHROUGH_SEPARATOR and the tool's name.
     tools: frozenset[str] = frozenset()
     # Only tools that declare they cannot change anything.
@@ -172,9 +175,17 @@ class PassthroughSettings:
 
     @classmethod
     def from_options(cls, options: Mapping[str, Any]) -> PassthroughSettings:
-        """Return the settings stored in config entry options."""
+        """Return the settings stored in config entry options.
+
+        An API and one integration within an API are chosen in the same field.
+        """
+        wholes = frozenset(options.get(CONF_PASSTHROUGH_APIS, ()))
+        integrations = frozenset(
+            choice for choice in wholes if PASSTHROUGH_SEPARATOR in choice
+        )
         return cls(
-            apis=frozenset(options.get(CONF_PASSTHROUGH_APIS, ())),
+            apis=wholes - integrations,
+            integrations=integrations,
             tools=frozenset(options.get(CONF_PASSTHROUGH_TOOLS, ())),
             read_only=options.get(
                 CONF_PASSTHROUGH_READ_ONLY, DEFAULT_PASSTHROUGH_READ_ONLY
@@ -185,22 +196,31 @@ class PassthroughSettings:
     @property
     def enabled(self) -> bool:
         """Return whether anything is to be passed on."""
-        return bool(self.apis or self.tools)
+        return bool(self.apis or self.integrations or self.tools)
 
     def wants_api(self, api_id: str) -> bool:
         """Return whether any tool of this API may be passed on."""
         return api_id in self.apis or any(
             choice.rpartition(PASSTHROUGH_SEPARATOR)[0] == api_id
-            for choice in self.tools
+            for choice in self.integrations | self.tools
         )
 
-    def wants_tool(self, api_id: str, name: str, *, read_only: bool) -> bool:
+    def wants_tool(
+        self, api_id: str, name: str, *, integration: str | None, read_only: bool
+    ) -> bool:
         """Return whether this tool of this API is passed on."""
         if self.read_only and not read_only:
             return False
-        return api_id in self.apis or passthrough_choice(api_id, name) in self.tools
+        return (
+            api_id in self.apis
+            or passthrough_choice(api_id, name) in self.tools
+            or (
+                integration is not None
+                and passthrough_choice(api_id, integration) in self.integrations
+            )
+        )
 
 
 def passthrough_choice(api_id: str, name: str) -> str:
-    """Return how the choice of one tool of an API is saved."""
+    """Return how the choice of one tool, or one integration, of an API is saved."""
     return f"{api_id}{PASSTHROUGH_SEPARATOR}{name}"

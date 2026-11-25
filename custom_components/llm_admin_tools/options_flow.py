@@ -11,6 +11,8 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import llm
 from homeassistant.helpers.selector import (
     AreaSelector,
     AreaSelectorConfig,
@@ -26,6 +28,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
 )
+from homeassistant.loader import Integration, async_get_integrations
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -65,6 +68,7 @@ from .policy.settings import (
     DEFAULT_REDACT_NETWORK,
     DEFAULT_REDACT_PERSONAL,
     DEFAULT_SCRUB_ESPHOME_SECRETS,
+    PassthroughSettings,
     passthrough_choice,
 )
 from .policy.writes import (
@@ -157,6 +161,7 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
         schema: dict[Any, Any],
         values: dict[str, Any] | None = None,
         errors: dict[str, str] | None = None,
+        placeholders: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
         """Show a form, filled with the given values or else what is saved."""
         return self.async_show_form(
@@ -166,6 +171,7 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
                 values if values is not None else self.config_entry.options,
             ),
             errors=errors,
+            description_placeholders=placeholders,
         )
 
     async def async_step_tools(
@@ -391,24 +397,38 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         """Choose which tools of other LLM APIs are passed on; none until chosen."""
         offered = await async_offered_elsewhere(self.hass)
+        names = await _integration_names(self.hass, offered)
         errors: dict[str, str] = {}
+        placeholders = {"passes_nothing": ""}
         if user_input is not None:
-            if user_input[CONF_PASSTHROUGH_READ_ONLY] and any(
-                passthrough_choice(api.id, tool.name)
-                in user_input[CONF_PASSTHROUGH_TOOLS]
+            chosen = PassthroughSettings.from_options(user_input)
+            if chosen.read_only and any(
+                passthrough_choice(api.id, tool.name) in chosen.tools
                 and not tool.annotations.read_only
                 for api, tools in offered
                 for tool in tools
             ):
                 errors[CONF_PASSTHROUGH_TOOLS] = "passthrough_not_read_only"
-            else:
+            if nothing := _passing_nothing(offered, chosen, names):
+                errors[CONF_PASSTHROUGH_APIS] = "passthrough_passes_nothing"
+                placeholders["passes_nothing"] = ", ".join(nothing)
+            if not errors:
                 return self._async_save(user_input)
 
         options = self.config_entry.options
-        apis = [
-            SelectOptionDict(value=api.id, label=f"{api.name} ({api.id})")
-            for api, _ in offered
-        ]
+        apis = []
+        for api, api_tools in offered:
+            apis.append(SelectOptionDict(value=api.id, label=f"{api.name} ({api.id})"))
+            # Home Assistant's own APIs hold the tools of many integrations.
+            domains = _domains(api_tools)
+            if len(domains) > 1:
+                apis.extend(
+                    SelectOptionDict(
+                        value=(choice := passthrough_choice(api.id, domain)),
+                        label=f"{api.name}, only {names[domain]} ({choice})",
+                    )
+                    for domain in domains
+                )
         tools = [
             SelectOptionDict(
                 value=passthrough_choice(api.id, tool.name),
@@ -441,7 +461,59 @@ class LlmAdminToolsOptionsFlow(OptionsFlowWithReload):
                 CONF_PASSTHROUGH_PROMPTS, default=False
             ): BooleanSelector(),
         }
-        return self._async_show_step("other_tools", schema, user_input, errors)
+        return self._async_show_step(
+            "other_tools", schema, user_input, errors, placeholders
+        )
+
+
+def _domains(tools: Iterable[llm.Tool]) -> list[str]:
+    """Return the integrations that provide these tools, as far as they say."""
+    return sorted({tool.integration for tool in tools if tool.integration})
+
+
+async def _integration_names(
+    hass: HomeAssistant, offered: list[tuple[llm.API, list[llm.Tool]]]
+) -> dict[str, str]:
+    """Return the name of each integration that provides a tool offered."""
+    domains = {domain for _, tools in offered for domain in _domains(tools)}
+    found = await async_get_integrations(hass, domains)
+    return {
+        domain: item.name if isinstance(item, Integration) else domain
+        for domain, item in found.items()
+    }
+
+
+def _passing_nothing(
+    offered: list[tuple[llm.API, list[llm.Tool]]],
+    chosen: PassthroughSettings,
+    names: Mapping[str, str],
+) -> list[str]:
+    """Return what is chosen whole but has no tool that may be passed on now.
+
+    Only tools that read may be, and many declare nothing, such as all those of
+    some Model Context Protocol servers.
+    """
+    if not chosen.read_only:
+        return []
+    nothing: list[str] = []
+    for api, tools in offered:
+        wholes: list[tuple[str, list[llm.Tool]]] = []
+        if api.id in chosen.apis:
+            wholes.append((api.name, tools))
+        wholes.extend(
+            (
+                f"{api.name}, only {names[domain]}",
+                [tool for tool in tools if tool.integration == domain],
+            )
+            for domain in _domains(tools)
+            if passthrough_choice(api.id, domain) in chosen.integrations
+        )
+        nothing.extend(
+            label
+            for label, scope in wholes
+            if scope and not any(tool.annotations.read_only for tool in scope)
+        )
+    return nothing
 
 
 def _with_saved(
